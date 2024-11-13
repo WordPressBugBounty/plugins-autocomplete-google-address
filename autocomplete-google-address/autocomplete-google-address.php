@@ -3,7 +3,7 @@
  * Plugin Name:       Autocomplete Google Address
  * Plugin URI:        https://www.nishelement.com/google-autocomplete-pro
  * Description:       This plugin will help you to add autocomplete google addres features by using google place api
- * Version:           2.0.2
+ * Version:           2.0.3
  * Requires at least: 5.0
  * Tested up to: 5.7
  * Author:            Md Nishath Khandakar
@@ -26,14 +26,33 @@ define( 'AUTOCOMPLET_VERSION', '1.0.0' );
 define( 'AUTOCOMPLET__PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'AUTOCOMPLET__PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 
-// Scripts are including
-add_action( 'wp_enqueue_scripts', 'autocomplete_google_enqueue_scripts' );
+add_action('wp_enqueue_scripts', 'autocomplete_google_enqueue_scripts');
 function autocomplete_google_enqueue_scripts() {
-	$google_api_key = myprefix_get_option( 'google_place_api' );
-	wp_enqueue_script('autocomplet-custom',AUTOCOMPLET__PLUGIN_URL.'js/custom.js',array('jquery-core','jquery'),'',true);
-	wp_enqueue_script('google-maps','https://maps.googleapis.com/maps/api/js?key='.(!empty($google_api_key) ? $google_api_key : 'AIzaSyB16sGmIekuGIvYOfNoW9T44377IU2d2Es').'&libraries=places',array('jquery-core','jquery','autocomplet-custom'),'1.0',true);
+    $google_api_key = myprefix_get_option('google_place_api');
 
+    // Enqueue the custom script that depends on Google Maps
+    wp_enqueue_script(
+        'autocomplet-custom',
+        AUTOCOMPLET__PLUGIN_URL . 'src/custom.js',
+        array('jquery-core', 'jquery'),
+        '',
+        true
+    );
+
+    // Enqueue the Google Maps API script
+    wp_enqueue_script(
+        'google-maps',
+        'https://maps.googleapis.com/maps/api/js?key=' . (!empty($google_api_key) ? $google_api_key : 'AIzaSyB16sGmIekuGIvYOfNoW9T44377IU2d2Es') . '&loading=async&libraries=places',
+        array('jquery-core', 'jquery', 'autocomplet-custom'),
+        '1.0',
+        true
+    );
+
+    // Add async and defer attributes to the Google Maps script
+    wp_script_add_data('google-maps', 'async', true);
+    wp_script_add_data('google-maps', 'defer', true);
 }
+
 // Putting on wp head
 add_action('wp_head','autocomplet_set_google_autocompletegen');
 function autocomplet_set_google_autocompletegen(){
@@ -65,13 +84,13 @@ function autocomplet_set_google_autocompletegen(){
 ?>
 
 	<script>
-	var input_fields = '<?php echo implode(',' , $search_fields);?>';
+	var inputFields = '<?php echo implode(',' , $search_fields);?>';
 	</script>
 <?php }
 
-add_filter( 'plugin_action_links_' . plugin_basename(__FILE__), 'add_support_link_wpse_pro7' );
+add_filter( 'plugin_action_links_' . plugin_basename(__FILE__), 'support_link' );
 
-function add_support_link_wpse_pro7( $links ) {
-   $links[] = '<a href="https://checkout.freemius.com/mode/dialog/plugin/6886/plan/11211/" target="_blank">Go For Pro</a> | <a href="https://youtu.be/2vVqEOcOvKk?si=WOyROQ6dghAP3hkk" target="_blank">Setup Video</a>';
+function support_link( $links ) {
+   $links[] = '<a href="https://checkout.freemius.com/mode/dialog/plugin/6886/plan/11211/" target="_blank">Go For Pro</a> | <a href="https://devsupport.vercel.app/" target="_blank">Contact Developer</a> | <a href="https://youtu.be/2vVqEOcOvKk?si=WOyROQ6dghAP3hkk" target="_blank">Setup Video</a>';
    return $links;
 }

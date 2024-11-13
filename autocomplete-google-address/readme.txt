@@ -3,7 +3,7 @@ Contributors: nishathbd31
 Donate link: https://www.facebook.com/nishat.rafi.60
 Tags: Autocomplete,Google Address Autocomplete,Autocomplete Google Address,Address Autocomplete
 Requires at least: 5.0
-Tested up to: 6.4.2
+Tested up to: 6.7
 Stable tag: trunk
 Requires PHP: 5.4
 License: GPLv2 or later
@@ -53,6 +53,8 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+design upgrade, developer support added, map api consol error solved, typescript added for better readability and code maintenance, tested with lates wordpress 6.7
+== 2.0.3 ==
 simple upgrade
 == 2.0.2 ==
 Payment system to upgrade

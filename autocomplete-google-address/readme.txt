@@ -3,7 +3,7 @@ Contributors: nishathbd31
 Donate link: https://www.facebook.com/nishat.rafi.60
 Tags: Autocomplete,Google Address Autocomplete,Autocomplete Google Address,Address Autocomplete
 Requires at least: 5.0
-Tested up to: 6.7
+Tested up to: 6.7.2
 Stable tag: trunk
 Requires PHP: 5.4
 License: GPLv2 or later
@@ -14,8 +14,7 @@ This plugin will help you to use Place Autocomplete API key.
 == Description ==
 
 This plugin will help you to use Place Autocomplete API key to enable address auto-completion to any text input fields.You just need to fill the text input ID. You can add multiple input by using " , ".
-[youtube https://www.youtube.com/watch?v=j9sKJJhtULM]
-[youtube https://youtu.be/2vVqEOcOvKk?si=WOyROQ6dghAP3hkk]
+[youtube https://youtu.be/NO1CFjuyWqo?si=MgAOCYbxx16vNYJP]
 
 == Installation ==
 1. Upload the plugin files to the `/wp-content/plugins/plugin-name` directory, or install the plugin through the WordPress plugins screen directly.
@@ -53,6 +52,9 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+This a major update. Before update take a coppy off your previous version plugin.
+In this version you will see lot's of improvments and style changes. 
+== 3.0.0 ==
 design upgrade, developer support added, map api consol error solved, typescript added for better readability and code maintenance, tested with lates wordpress 6.7
 == 2.0.3 ==
 simple upgrade

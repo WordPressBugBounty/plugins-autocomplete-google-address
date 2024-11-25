@@ -1,96 +1,144 @@
-<?php
-/**
- * Plugin Name:       Autocomplete Google Address
- * Plugin URI:        https://www.nishelement.com/google-autocomplete-pro
- * Description:       This plugin will help you to add autocomplete google addres features by using google place api
- * Version:           2.0.3
- * Requires at least: 5.0
- * Tested up to: 5.7
- * Author:            Md Nishath Khandakar
- * Author URI:        https://www.facebook.com/nishat.rafi.60
- * License:           GPL v2 or later
- * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
- * Text Domain:       ga-auto
- * Domain Path:       /languages
- */
-
+<?php 
 /*
-**/
-// Make sure we don't expose any info if called directly
-if ( !function_exists( 'add_action' ) ) {
-	echo 'Don\'t make me mad';
-	exit;
+Plugin Name: Autocomplete Google Address
+Description: Adds Google Address Autocomplete functionality to WordPress forms.
+Version: 3.0.0
+Author: Md Nishath Khandakar
+Author URI: https://devsupport.vercel.app/
+License: GPL v2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: ga-auto
+Domain Path: /languages
+*/
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
 }
-include('admin_settings.php');
-define( 'AUTOCOMPLET_VERSION', '1.0.0' );
-define( 'AUTOCOMPLET__PLUGIN_URL', plugin_dir_url( __FILE__ ) );
-define( 'AUTOCOMPLET__PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 
-add_action('wp_enqueue_scripts', 'autocomplete_google_enqueue_scripts');
-function autocomplete_google_enqueue_scripts() {
-    $google_api_key = myprefix_get_option('google_place_api');
+// Freemius Integration
+if ( ! function_exists( 'google_autocomplete' ) ) {
+    // Create a helper function for easy SDK access.
+    function google_autocomplete() {
+        global $google_autocomplete;
 
-    // Enqueue the custom script that depends on Google Maps
-    wp_enqueue_script(
-        'autocomplet-custom',
-        AUTOCOMPLET__PLUGIN_URL . 'src/custom.js',
-        array('jquery-core', 'jquery'),
-        '',
-        true
+        if ( ! isset( $google_autocomplete ) ) {
+            // Include Freemius SDK.
+            require_once dirname(__FILE__) . '/freemius/start.php';
+
+            $google_autocomplete = fs_dynamic_init( array(
+                'id'                  => '6886',
+                'slug'                => 'form-autocomplete-nish',
+                'premium_slug'        => 'google-autocomplete-premium',
+                'type'                => 'plugin',
+                'public_key'          => 'pk_f939b69fc6977108e74fa9e7e3136',
+                'is_premium'          => false,
+                // If your plugin is a serviceware, set this option to false.
+                'has_premium_version' => false,
+                'has_addons'          => false,
+                'has_paid_plans'      => true,
+                'trial'               => array(
+                    'days'               => 3,
+                    'is_require_payment' => true,
+                ),
+                'has_affiliation'     => 'all',
+                'menu'                => array(
+                    'slug'           => 'google-autocomplete-plugin',
+                    'first-path'     => 'admin.php?page=google-autocomplete-plugin',
+                    'support'        => false,
+                ),
+            ) );
+        }
+
+        return $google_autocomplete;
+    }
+
+    // Init Freemius.
+    google_autocomplete();
+    // Signal that SDK was initiated.
+    do_action( 'google_autocomplete_loaded' );
+}
+// Define constants
+define('GAP_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('GAP_PLUGIN_URL', plugin_dir_url(__FILE__));
+
+// // Include necessary files
+// require_once GAP_PLUGIN_DIR . 'includes/class-rest-api.php';
+require_once GAP_PLUGIN_DIR . 'includes/class-autocomplete-api.php';
+require_once GAP_PLUGIN_DIR . 'includes/class-enqueue-scripts.php';
+
+
+
+
+// Database Table Creation on Activation
+register_activation_hook(__FILE__, 'gap_create_db_table');
+function gap_create_db_table() {
+    global $wpdb;
+
+    $table_name = $wpdb->prefix . 'gap_configs';
+    $charset_collate = $wpdb->get_charset_collate();
+
+    $sql = "CREATE TABLE $table_name (
+        id INT NOT NULL AUTO_INCREMENT,
+        config_name VARCHAR(255) NOT NULL,
+        api_key TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id)
+    ) $charset_collate;";
+
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta($sql);
+}
+
+// // Freemius Uninstall Hook
+google_autocomplete()->add_action('after_uninstall', 'google_autocomplete_uninstall_cleanup');
+
+// Uninstall Cleanup Logic
+function google_autocomplete_uninstall_cleanup() {
+    global $wpdb;
+
+    // Delete plugin settings
+    delete_option('google_api_key');
+    delete_option('gap_configs');
+    delete_option('gap_language');
+    delete_option('gap_clear_log');
+
+    // Drop the `gap_configs` table
+    $table_name = $wpdb->prefix . 'gap_configs';
+    $wpdb->query("DROP TABLE IF EXISTS {$table_name}");
+}
+
+// Render Admin Page
+function gap_render_admin_page() {
+    $page = isset($_GET['page']) && $_GET['page'] === 'google-autocomplete-settings' ? 'settings' : 'configurations';
+    ?>
+    <div id="root" class="wrap">
+        <h1>Google Autocomplete <?php echo ucfirst($page); ?></h1>
+    </div>
+    <script>
+        window.gapPageContext = "<?php echo esc_js($page); ?>";
+    </script>
+    <?php
+}
+
+// Add Admin Menu
+add_action('admin_menu', function () {
+    add_menu_page(
+        'Google Autocomplete',
+        'Autocomplete',
+        'manage_options',
+        'google-autocomplete-plugin',
+        'gap_render_admin_page',
+        'dashicons-location-alt',
+        20 // Position in the menu
     );
 
-    // Enqueue the Google Maps API script
-    wp_enqueue_script(
-        'google-maps',
-        'https://maps.googleapis.com/maps/api/js?key=' . (!empty($google_api_key) ? $google_api_key : 'AIzaSyB16sGmIekuGIvYOfNoW9T44377IU2d2Es') . '&loading=async&libraries=places',
-        array('jquery-core', 'jquery', 'autocomplet-custom'),
-        '1.0',
-        true
+    add_submenu_page(
+        'google-autocomplete-plugin',
+        'Autocomplete Settings',
+        'Settings',
+        'manage_options',
+        'google-autocomplete-settings',
+        'gap_render_admin_page'
     );
-
-    // Add async and defer attributes to the Google Maps script
-    wp_script_add_data('google-maps', 'async', true);
-    wp_script_add_data('google-maps', 'defer', true);
-}
-
-// Putting on wp head
-add_action('wp_head','autocomplet_set_google_autocompletegen');
-function autocomplet_set_google_autocompletegen(){
-
-	$search_fields = array();
-	$gaaf_names = get_option('gaaf_field_name');
-
-	$autocomplet_ids = myprefix_get_option( 'form_id' );
-	if(!empty($autocomplet_ids)){
-		$check_hash = explode(',', $autocomplet_ids);
-		foreach($check_hash as $key){
-			if(!empty($key)){
-				$findhash = '#';
-				if(strpos($key, $findhash) === false){
-					$search_fields[] = ' #'.trim($key);
-				}else{
-					$search_fields[] = trim($key);
-				}
-			}
-		}
-	}
-
-	if(count($search_fields) == 0){
-		$search_fields[] =' .google_autocomplete';
-	}
-
-
-
-?>
-
-	<script>
-	var inputFields = '<?php echo implode(',' , $search_fields);?>';
-	</script>
-<?php }
-
-add_filter( 'plugin_action_links_' . plugin_basename(__FILE__), 'support_link' );
-
-function support_link( $links ) {
-   $links[] = '<a href="https://checkout.freemius.com/mode/dialog/plugin/6886/plan/11211/" target="_blank">Go For Pro</a> | <a href="https://devsupport.vercel.app/" target="_blank">Contact Developer</a> | <a href="https://youtu.be/2vVqEOcOvKk?si=WOyROQ6dghAP3hkk" target="_blank">Setup Video</a>';
-   return $links;
-}
+});

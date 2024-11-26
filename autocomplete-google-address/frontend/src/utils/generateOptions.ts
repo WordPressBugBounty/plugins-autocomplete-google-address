@@ -12,6 +12,7 @@ export const generateOptions = (
       "icon",
       "name",
       "formatted_address",
+      "type",
     ],
     componentRestrictions: countryList,
   };

@@ -34,13 +34,13 @@ class Enqueue_Scripts {
         }
 
         // Enqueue Admin CSS
-        $css_file = GAP_PLUGIN_DIR . 'assets/admin.css';
-        wp_enqueue_style(
-            'gap-admin-style',
-            GAP_PLUGIN_URL . 'assets/admin.css',
-            [],
-            file_exists($css_file) ? filemtime($css_file) : null
-        );
+        // $css_file = GAP_PLUGIN_DIR . 'assets/admin.css';
+        // wp_enqueue_style(
+        //     'gap-admin-style',
+        //     GAP_PLUGIN_URL . 'assets/admin.css',
+        //     [],
+        //     file_exists($css_file) ? filemtime($css_file) : null
+        // );
 
         // Enqueue Admin JS
         $js_file = GAP_PLUGIN_DIR . 'assets/admin.js';
@@ -51,6 +51,8 @@ class Enqueue_Scripts {
             file_exists($js_file) ? filemtime($js_file) : null,
             true
         );
+
+     
         $isPremium = google_autocomplete()->is__premium_only();
         // $isPremium = null;
         $isPlan = google_autocomplete()->is_plan('pro', true);

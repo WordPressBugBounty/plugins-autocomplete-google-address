@@ -18,12 +18,13 @@ export interface AddressConfiguration {
   show_map?: boolean;
   optional_1?: string | null | undefined;
   optional_2?: string | null | undefined;
-  search_type?: string | null | undefined;
+  search_type?: string[];
   type?: "regular" | "woocommerce" | null | undefined;
   map_width: string;
   map_height: string;
   map_display_id: string;
   zoom_level: number;
+  // address_format: "address" | "name";
 }
 
 declare global {

@@ -1,4 +1,7 @@
 import React, { useState } from 'react';
+import Select from 'react-select';
+import { options } from '../lib';
+import { toast } from 'react-toastify';
 
 interface ConfigFormProps {
   type: string;
@@ -27,12 +30,19 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
     show_map: config?.show_map || false,
     optional_1: config?.optional_1 || '',
     optional_2: config?.optional_2 || '',
-    search_type: config?.search_type || 'address',
+    search_type: config?.search_type || ['address'],
     map_width: config?.map_width || 100,
     map_height: config?.map_height || '250px',
     map_display_id: config?.map_display_id || 'parent',
     zoom_level: config?.zoom_level || 18,
   });
+  const handleSearchTypeChange = (selectedOption: any) => {
+    setFormData((prevData) => ({
+      ...prevData,
+      search_type: selectedOption ? [selectedOption.value] : ['address'], // If no selection, default to 'address'
+    }));
+  };
+  console.log('check multi select=======>', formData);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -50,7 +60,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
     e.preventDefault();
 
     if (!formData.name) {
-      alert('Configuration name is required.');
+      toast.error('Configuration name is required.'); // Error toast
       return;
     }
 
@@ -72,18 +82,18 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
       if (response.ok) {
         const responseData = await response.json();
         console.log('Configuration saved successfully:', responseData);
+        toast.success('Configuration saved successfully!'); // Success toast
         onSave(); // Refresh parent component or reload configurations
       } else {
         const errorData = await response.json();
         console.error('Failed to save configuration:', errorData);
-        alert('Failed to save configuration. Please try again.');
+        toast.error('Failed to save configuration. Please try again.'); // Error toast
       }
     } catch (error) {
       console.error('Error saving configuration:', error);
-      alert('An unexpected error occurred. Please try again.');
+      toast.error('An unexpected error occurred. Please try again.'); // Error toast
     }
   };
-
   console.log('Has Pro Plan=================>', window.gapData);
 
   return (
@@ -91,6 +101,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
       <h2 className="text-lg font-semibold mb-4">
         {formData.id ? 'Edit Configuration' : 'New Configuration'} - {type}
       </h2>
+
       <div className="grid grid-cols-2 gap-4">
         <label>
           Configuration Name:
@@ -292,45 +303,17 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
               <b className="text-red-500">* Premium Only</b>
             </span>
           )}
-          <select
-            disabled={!isPlan}
-            name="state_type"
-            value={formData.state_type}
-            onChange={handleInputChange}
-            className="border p-1 w-full"
-          >
-            <option value="short">Short</option>
-            <option value="long">Long</option>
-          </select>
-        </label>
-        <label>
           Search Type:
-          {!isPlan && (
-            <span className="ml-2">
-              <b className="text-red-500">* Premium Only</b>
-            </span>
-          )}
-          <select
-            disabled={!isPlan}
-            name="search_type"
-            value={formData.search_type}
-            onChange={handleInputChange}
+          <Select
+            options={options} // Your select options
+            value={options.find(
+              (option) => option.value === formData.search_type[0],
+            )} // Set the selected value based on formData
+            onChange={handleSearchTypeChange} // Handle the selection change
             className="border p-1 w-full"
-          >
-            <option value="geocode ">Geocode </option>
-            <option value="address">Address</option>
-            <option value="cities">Cities</option>
-            <option value="establishment">Establishment</option>
-            <option value="regions">Regions</option>
-            <option value="postal_code">Postal code</option>
-            <option value="airport">Airport</option>
-            <option value="locksmith">Locksmith</option>
-            <option value="plumber">Plumber</option>
-            <option value="post_office">Post office</option>
-            <option value="restaurant">Restaurant</option>
-            <option value="roofing_contractor">Roofing Contractor</option>
-          </select>
+          />
         </label>
+
         <label>
           Address Type:
           {!isPlan && (

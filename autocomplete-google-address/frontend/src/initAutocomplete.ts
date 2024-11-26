@@ -98,6 +98,7 @@ export async function initAutocomplete(
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
+      console.log(place);
 
       if (!place.geometry || !place.address_components) {
         console.log(
@@ -132,6 +133,7 @@ export async function initAutocomplete(
 
     autocomplete.addListener("place_changed", () => {
       const place = autocomplete.getPlace();
+      console.log(place);
 
       if (!place.geometry || !place.address_components) {
         console.log(

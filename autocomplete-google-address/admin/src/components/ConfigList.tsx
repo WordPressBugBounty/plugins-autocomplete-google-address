@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 
 const ConfigList = ({
   reload,
@@ -49,9 +50,11 @@ const ConfigList = ({
 
       if (response.ok) {
         setConfigs((prev) => prev.filter((config: any) => config.id !== id));
+        toast.success('Configuration deleted successfully.');
         console.log('Configuration deleted successfully.');
       } else {
-        console.error('Failed to delete configuration.');
+        toast.error('Failed to delete configuration.');
+        // console.error('Failed to delete configuration.');
       }
     } catch (error) {
       console.error('Error deleting configuration:', error);

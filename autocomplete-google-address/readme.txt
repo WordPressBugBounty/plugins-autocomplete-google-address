@@ -52,6 +52,8 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+search type error, place name added
+== 3.0.1 ==
 This a major update. Before update take a coppy off your previous version plugin.
 In this version you will see lot's of improvments and style changes. 
 == 3.0.0 ==

@@ -4,22 +4,20 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: '../assets', // Output files to the plugin's assets folder
+    outDir: '../assets',
     emptyOutDir: true,
     rollupOptions: {
       input: './index.html',
+      external: ['react', 'react-dom'], // Exclude React and ReactDOM
       output: {
+        globals: {
+          react: 'React',
+          'react-dom': 'ReactDOM',
+        },
         entryFileNames: 'admin.js',
         assetFileNames: 'admin.css',
+        format: 'iife',
       },
     },
   },
 });
-
-// import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react'
-
-// // https://vite.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-// })

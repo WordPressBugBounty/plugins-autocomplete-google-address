@@ -17,7 +17,7 @@ export interface AddressConfiguration {
   show_map: boolean;
   optional_1: string;
   optional_2: string;
-  search_type: string;
+  search_type?: string[];
   type: "regular" | "woocommerce";
   map_width: string;
   map_height: string;

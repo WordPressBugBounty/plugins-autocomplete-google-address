@@ -1,6 +1,7 @@
-import { processAddressComponents } from "./utils/processAddressComponents";
 import { AddressConfiguration } from "./types/index";
+import { mapAddressFormater } from "./utils/mapAddressFormater";
 const { isPlan } = window.gapFrontendData;
+
 export async function initializeMap(
   mapContainerId: string,
   defaultLat: number,
@@ -70,7 +71,7 @@ export async function initializeMap(
 
           // Apply the address to the form using processAddressComponents
           if (isPlan) {
-            processAddressComponents(results[0], input);
+            mapAddressFormater(results[0], input);
           }
         } else {
           //   console.error("Geocoder failed or returned no results: " + status);

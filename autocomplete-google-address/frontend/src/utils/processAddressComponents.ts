@@ -3,6 +3,9 @@ import { getInputByID } from "./getInputByID";
 import { longShort } from "./longShort";
 import { setInputValue } from "./setInputValue";
 
+function arrayIncludes<T>(array: T[] | undefined, value: T): boolean {
+  return Array.isArray(array) && array.indexOf(value) !== -1;
+}
 export function processAddressComponents(
   place: google.maps.places.PlaceResult,
   input: AddressConfiguration
@@ -71,9 +74,15 @@ export function processAddressComponents(
     console.error("place.address_components is undefined");
   }
 
-  if (input.address_type === "short") {
-    // console.log("test short");
+  // if (input.search_type == "establishment") {
+  //   const name = place?.name || "";
+  //   console.log(input.search_type, name);
 
+  //   setInputValue(input.street_address_id, name);
+  // }
+  const premise = arrayIncludes(place.types, "premise");
+  if (input.address_type == "short" && premise) {
+    // console.log("test short");
     const shortAddress = `${streetNumber} ${route}`;
     setInputValue(input.street_address_id, shortAddress);
   } else {
@@ -81,6 +90,6 @@ export function processAddressComponents(
 
     // console.log("place formated====>", place.formatted_address);
 
-    setInputValue(input.street_address_id, place.formatted_address as string);
+    setInputValue(input.street_address_id, place.name || "");
   }
 }

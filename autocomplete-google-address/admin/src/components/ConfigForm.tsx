@@ -303,7 +303,24 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
               <b className="text-red-500">* Premium Only</b>
             </span>
           )}
+          <select
+            disabled={!isPlan}
+            name="country_type"
+            value={formData.state_type}
+            onChange={handleInputChange}
+            className="border p-1 w-full"
+          >
+            <option value="short">Short</option>
+            <option value="long">Long</option>
+          </select>
+        </label>
+        <label>
           Search Type:
+          {!isPlan && (
+            <span className="ml-2">
+              <b className="text-red-500">* Premium Only</b>
+            </span>
+          )}
           <Select
             options={options} // Your select options
             value={options.find(

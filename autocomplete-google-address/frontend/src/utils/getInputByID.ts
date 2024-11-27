@@ -1,2 +1,3 @@
-export const getInputByID = (id: string): HTMLInputElement | null =>
-  document.getElementById(id) as HTMLInputElement | null;
+export function getInputByID(id: string): HTMLInputElement | null {
+  return document.getElementById(id) as HTMLInputElement;
+}

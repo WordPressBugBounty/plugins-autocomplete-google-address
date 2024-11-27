@@ -29,6 +29,10 @@ export interface AddressConfiguration {
 
 declare global {
   interface Window {
+    jQuery: (selector: string) => JQueryStatic;
+    wc_checkout_form: {
+      update_checkout: () => void;
+    };
     gapFrontendData: GapFrontendData;
     initGoogleMaps: () => void;
   }

@@ -52,6 +52,8 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+Address type long fixed
+== 3.0.3 ==
 search type error, place name added
 == 3.0.1 ==
 This a major update. Before update take a coppy off your previous version plugin.

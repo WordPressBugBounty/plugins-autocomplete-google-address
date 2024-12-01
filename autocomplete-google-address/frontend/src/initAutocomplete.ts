@@ -11,11 +11,11 @@ export async function initAutocomplete(
   countryList: any,
   defaultMapContainerId: string
 ) {
-  let search_type: string | string[] = input.search_type;
-  if (typeof search_type === "string") {
-    search_type = [search_type];
-  }
-  const options = generateOptions(search_type, countryList);
+  // let search_type: string | string[] = input.search_type;
+  // if (typeof search_type === "string") {
+  //   search_type = [search_type];
+  // }
+  const options = generateOptions(input.search_type, countryList);
 
   const inputElement = getInputByID(input.street_address_id);
 

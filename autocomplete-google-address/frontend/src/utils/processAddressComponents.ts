@@ -83,13 +83,18 @@ export function processAddressComponents(
   const premise = arrayIncludes(place.types, "premise");
   if (input.address_type == "short" && premise) {
     // console.log("test short");
-    const shortAddress = `${streetNumber} ${route}`;
-    setInputValue(input.street_address_id, shortAddress);
+    // const shortAddress = `${streetNumber} ${route}`;
+    setInputValue(input.street_address_id, place.name || "");
   } else {
     // console.log("test else");
 
     // console.log("place formated====>", place.formatted_address);
-
-    setInputValue(input.street_address_id, place.name || "");
+    if (input.search_type) {
+      if (input.search_type[0] !== "address") {
+        setInputValue(input.street_address_id, place.name || "");
+      }
+    } else {
+      setInputValue(input.street_address_id, place.formatted_address || "");
+    }
   }
 }

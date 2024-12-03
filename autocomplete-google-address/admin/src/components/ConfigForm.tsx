@@ -403,7 +403,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
         </label>
 
         <label>
-          Map Display ID:
+          Map Display ClassName:
           {!isPlan && (
             <span className="ml-2">
               <b className="text-red-500">* Premium Only</b>

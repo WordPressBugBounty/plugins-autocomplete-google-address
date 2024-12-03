@@ -3,11 +3,12 @@ type Option = {
   label: string;
 };
 export const options: Option[] = [
+  { value: 'all', label: 'All' },
   { value: 'geocode', label: 'Geocode' },
   { value: 'address', label: 'Address' },
   { value: 'cities', label: 'Cities' },
   { value: 'establishment', label: 'Establishment' },
-  { value: 'regions', label: 'Regions' },
+  { value: '(regions)', label: 'Regions' },
   { value: 'postal_code', label: 'Postal Code' },
   { value: 'airport', label: 'Airport' },
   { value: 'locksmith', label: 'Locksmith' },

@@ -3,9 +3,9 @@ import { getInputByID } from "./getInputByID";
 import { longShort } from "./longShort";
 import { setInputValue } from "./setInputValue";
 
-function arrayIncludes<T>(array: T[] | undefined, value: T): boolean {
-  return Array.isArray(array) && array.indexOf(value) !== -1;
-}
+// function arrayIncludes<T>(array: T[] | undefined, value: T): boolean {
+//   return Array.isArray(array) && array.indexOf(value) !== -1;
+// }
 export function processAddressComponents(
   place: google.maps.places.PlaceResult,
   input: AddressConfiguration
@@ -74,27 +74,7 @@ export function processAddressComponents(
     console.error("place.address_components is undefined");
   }
 
-  // if (input.search_type == "establishment") {
-  //   const name = place?.name || "";
-  //   console.log(input.search_type, name);
-
-  //   setInputValue(input.street_address_id, name);
-  // }
-  const premise = arrayIncludes(place.types, "premise");
-  if (input.address_type == "short" && premise) {
-    // console.log("test short");
-    // const shortAddress = `${streetNumber} ${route}`;
+  if (input.address_type == "short") {
     setInputValue(input.street_address_id, place.name || "");
-  } else {
-    // console.log("test else");
-
-    // console.log("place formated====>", place.formatted_address);
-    if (input.search_type) {
-      if (input.search_type[0] !== "address") {
-        setInputValue(input.street_address_id, place.name || "");
-      }
-    } else {
-      setInputValue(input.street_address_id, place.formatted_address || "");
-    }
   }
 }

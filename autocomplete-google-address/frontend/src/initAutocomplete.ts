@@ -15,6 +15,8 @@ export async function initAutocomplete(
   // if (typeof search_type === "string") {
   //   search_type = [search_type];
   // }
+  console.log("front end search", input.search_type);
+
   const options = generateOptions(input.search_type, countryList);
 
   const inputElement = getInputByID(input.street_address_id);

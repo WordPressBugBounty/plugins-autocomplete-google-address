@@ -5,7 +5,7 @@ export const generateOptions = (
   countryList: ComponentRestrictions
 ): AutocompleteOptions => {
   return {
-    types: addressType,
+    types: addressType[0] === "all" ? [] : addressType, // Set types to [] if addressType is empty,
     fields: [
       "address_components",
       "geometry",

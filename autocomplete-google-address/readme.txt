@@ -52,6 +52,8 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+state type solved
+== 3.0.5 ==
 Search type and address long shot solved
 == 3.0.4 ==
 Address type long fixed

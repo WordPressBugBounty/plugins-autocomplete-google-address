@@ -305,7 +305,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
           )}
           <select
             disabled={!isPlan}
-            name="country_type"
+            name="state_type"
             value={formData.state_type}
             onChange={handleInputChange}
             className="border p-1 w-full"

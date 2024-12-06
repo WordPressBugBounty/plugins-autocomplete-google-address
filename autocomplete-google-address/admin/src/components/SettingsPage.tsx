@@ -1,23 +1,23 @@
 import React, { useEffect, useState } from 'react';
+import Select, { SingleValue } from 'react-select';
+import { language } from '../lib/lang';
 
 const SettingsPage = () => {
   const [formData, setFormData] = useState({
     googleApiKey: 'dfdsfsdfsdfsdfsdf',
-    language: 'en',
+    language: '',
     clearLog: false,
   });
 
   const [status, setStatus] = useState('');
 
   useEffect(() => {
-    // Ensure gapSettingsData exists
     if (!window.gapSettingsData) {
       console.error('gapSettingsData is not defined.');
       setStatus('Error: Configuration data is not available.');
       return;
     }
 
-    // Fetch existing settings
     const fetchSettings = async () => {
       try {
         const response = await fetch(window.gapSettingsData.restUrl, {
@@ -36,14 +36,6 @@ const SettingsPage = () => {
 
     fetchSettings();
   }, []);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,6 +63,29 @@ const SettingsPage = () => {
     } catch (error) {
       console.error('Error saving settings:', error);
       setStatus('An error occurred.');
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  const defaultLanguageOption = language.find(
+    (option) => option.value === formData.language,
+  );
+
+  const handleLanguageChange = (
+    selectedOption: SingleValue<{ value: string; label: string }> | null,
+  ) => {
+    if (selectedOption) {
+      setFormData((prevData) => ({
+        ...prevData,
+        language: selectedOption.value,
+      }));
     }
   };
 
@@ -102,24 +117,13 @@ const SettingsPage = () => {
           />
         </div>
         <div className="mb-4">
-          <label className="block mb-2">Language:</label>
-          <input
-            type="text"
-            name="language"
-            value={formData.language}
-            onChange={handleInputChange}
-            className="border p-2 w-full"
+          <Select
+            value={defaultLanguageOption}
+            onChange={handleLanguageChange}
+            options={language}
           />
         </div>
-        {/* <div className="mb-4 flex items-center">
-          <label className="mr-2">Clear Log:</label>
-          <input
-            type="checkbox"
-            name="clearLog"
-            checked={formData.clearLog}
-            onChange={handleInputChange}
-          />
-        </div> */}
+
         <button type="submit" className="button button-primary">
           Save Settings
         </button>

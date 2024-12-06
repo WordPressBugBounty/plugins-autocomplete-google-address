@@ -59,7 +59,9 @@ class Enqueue_Scripts {
 
             add_action('admin_notices', function () {
             // $isPlan = google_autocomplete()->is_plan('pro', true);
-            echo '<div class="notice notice-success"><a href="https://www.youtube.com/watch?v=NO1CFjuyWqo" target="_blank" style="font-size:20px;">Watch Tutorial </a></div>';
+            echo '<div class="notice notice-success"><a href="https://www.youtube.com/watch?v=NO1CFjuyWqo" target="_blank" style="font-size:20px;">Watch Tutorial </a><div style="font-size:20px;" id="discount-message"; margin-top:10px; font-size:18px; color:green;">
+        Get Discount via Chat
+      </div></div> ';
         });
         
 

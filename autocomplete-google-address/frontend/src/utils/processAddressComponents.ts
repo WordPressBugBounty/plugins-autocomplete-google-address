@@ -3,9 +3,6 @@ import { getInputByID } from "./getInputByID";
 import { longShort } from "./longShort";
 import { setInputValue } from "./setInputValue";
 
-// function arrayIncludes<T>(array: T[] | undefined, value: T): boolean {
-//   return Array.isArray(array) && array.indexOf(value) !== -1;
-// }
 export function processAddressComponents(
   place: google.maps.places.PlaceResult,
   input: AddressConfiguration

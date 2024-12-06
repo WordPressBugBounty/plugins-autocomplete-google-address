@@ -16,6 +16,7 @@ export async function initAutocomplete(
   //   search_type = [search_type];
   // }
   console.log("front end search", input.search_type);
+  console.log("Country list", countryList);
 
   const options = generateOptions(input.search_type, countryList);
 

@@ -10,7 +10,7 @@ export interface AddressConfiguration {
   county: string;
   latitude: string;
   longitude: string;
-  country_restriction: string;
+  country_restriction: string[];
   country_type: "short" | "long";
   state_type: "short" | "long";
   address_type: "short" | "long";
@@ -24,26 +24,6 @@ export interface AddressConfiguration {
   map_display_id: string;
   zoom_level: string;
 }
-
-// export interface FormSetup {
-//   single_line_address: string;
-//   street_address: string;
-//   city: string;
-//   sub_locality: string;
-//   state: string;
-//   zip_code: string;
-//   county: string;
-//   country: string;
-//   latitude: string;
-//   longitude: string;
-//   country_restriction: string;
-//   country_type: string;
-//   state_type: string;
-//   administrative_area_level_3: string;
-//   administrative_area_level_4: string;
-//   search_type: string;
-//   street_address_format: "number_first" | "route_first";
-// }
 
 export interface ComponentRestrictions {
   country: string[];

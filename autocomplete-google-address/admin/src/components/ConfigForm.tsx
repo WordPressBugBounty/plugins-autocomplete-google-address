@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import Select from 'react-select';
-import { options } from '../lib';
+import { Config, options } from '../lib';
 import { toast } from 'react-toastify';
+import { countries, Country } from '../lib/CountryList';
+
+// import { Country } from '../lib/CountryList';
 
 interface ConfigFormProps {
   type: string;
-  config?: any;
+  config?: Config;
   onSave: () => void;
 }
 
@@ -15,27 +18,38 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
     id: config?.id || null,
     name: config?.name || '',
     street_address_id: config?.street_address_id || 'billing-address_1',
-    city_id: config?.city_id || 'billing-city',
-    state_id: config?.state_id || 'billing-state',
-    zip_id: config?.zip_id || 'billing-postcode',
-    country_id: config?.country_id || 'billing-country',
+    city_id: config?.city_id || isPlan ? 'billing-city' : '',
+    state_id: config?.state_id || isPlan ? 'billing-state' : '',
+    zip_id: config?.zip_id || isPlan ? 'billing-postcode' : '',
+    country_id: config?.country_id || isPlan ? 'billing-country' : '',
     sub_locality: config?.sub_locality || '',
     county: config?.county || '',
-    latitude: config?.latitude || '34.052235',
-    longitude: config?.longitude || '-118.243683',
-    country_restriction: config?.country_restriction || '',
-    country_type: config?.country_type || 'short',
-    state_type: config?.state_type || 'short',
+    latitude: config?.latitude || isPlan ? '34.052235' : '',
+    longitude: config?.longitude || isPlan ? '-118.243683' : '',
+    country_restriction: config?.country_restriction || [], // Initial country_restriction
+    country_type: config?.country_type || isPlan ? 'short' : '',
+    state_type: config?.state_type || isPlan ? 'short' : '',
     address_type: config?.address_type || 'long',
     show_map: config?.show_map || false,
     optional_1: config?.optional_1 || '',
     optional_2: config?.optional_2 || '',
     search_type: config?.search_type || ['address'],
-    map_width: config?.map_width || 100,
-    map_height: config?.map_height || '250px',
-    map_display_id: config?.map_display_id || 'parent',
-    zoom_level: config?.zoom_level || 18,
+    map_width: config?.map_width || isPlan ? 100 : '',
+    map_height: config?.map_height || isPlan ? '250px' : '',
+    map_display_id: config?.map_display_id || isPlan ? 'parent' : '',
+    zoom_level: config?.zoom_level || isPlan ? 18 : '',
   });
+
+  const handleCountryChange = (selectedOptions: any) => {
+    const selectedCountries = selectedOptions
+      ? selectedOptions.map((option: any) => option.value)
+      : [];
+    setFormData((prevData) => ({
+      ...prevData,
+      country_restriction: selectedCountries.slice(0, 5), // Ensure no more than 5 countries
+    }));
+  };
+
   const handleSearchTypeChange = (selectedOption: any) => {
     setFormData((prevData) => ({
       ...prevData,
@@ -263,19 +277,26 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
         </label>
         <label>
           Country Restriction:
-          {!isPlan && (
+          {/* {!isPlan && (
             <span className="ml-2">
               <b className="text-red-500">* Premium Only</b>
             </span>
-          )}
-          <input
-            disabled={!isPlan}
-            type="text"
-            name="country_restriction"
-            placeholder="Country Restriction"
-            value={formData.country_restriction}
-            onChange={handleInputChange}
-            className="border p-1 w-full"
+          )} */}
+          <Select
+            isMulti
+            options={countries}
+            getOptionLabel={(e: Country) => e.name}
+            getOptionValue={(e: Country) => e.value}
+            value={countries.filter((country) =>
+              formData.country_restriction.includes(country.value),
+            )}
+            onChange={handleCountryChange}
+            maxMenuHeight={200}
+            placeholder="Select up to 5 countries"
+            isDisabled={
+              formData.country_restriction.length >= 5 &&
+              !formData.country_restriction.length
+            } // Disable adding more if 5 countries selected
           />
         </label>
         <label>
@@ -322,6 +343,7 @@ const ConfigForm: React.FC<ConfigFormProps> = ({ type, config, onSave }) => {
             </span>
           )}
           <Select
+            isDisabled={!isPlan}
             options={options} // Your select options
             value={options.find(
               (option) => option.value === formData.search_type[0],

@@ -11,7 +11,7 @@ export interface AddressConfiguration {
   county?: string | null | undefined;
   latitude?: string | null | undefined;
   longitude?: string | null | undefined;
-  country_restriction?: string | null | undefined;
+  country_restriction?: string[] | [];
   country_type?: "short" | "long" | null | undefined;
   state_type?: "short" | "long" | null | undefined;
   address_type?: "short" | "long" | null | undefined;

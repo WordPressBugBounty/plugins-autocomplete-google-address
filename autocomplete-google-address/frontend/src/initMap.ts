@@ -5,12 +5,9 @@ export function initGoogleMaps() {
   const { configs: formSetup } = window.gapFrontendData;
 
   formSetup.forEach((input: AddressConfiguration, index: number) => {
-    const countryArray = input.country_restriction
-      ? input.country_restriction
-          .split(",")
-          .map((country: string) => country.trim().toLowerCase())
-      : [];
-    const countryList: ComponentRestrictions = { country: countryArray };
+    const countryList: ComponentRestrictions = {
+      country: input.country_restriction,
+    };
 
     const mapContainerId = `map-${input.street_address_id}-${index}`;
 

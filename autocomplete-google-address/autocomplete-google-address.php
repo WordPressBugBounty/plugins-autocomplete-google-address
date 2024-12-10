@@ -2,7 +2,7 @@
 /*
 Plugin Name: Autocomplete Google Address
 Description: Adds Google Address Autocomplete functionality to WordPress forms.
-Version: 3.0.6
+Version: 3.0.7
 Author: Md Nishath Khandakar
 Author URI: https://devsupport.vercel.app/
 License: GPL v2 or later
@@ -98,14 +98,14 @@ function google_autocomplete_uninstall_cleanup() {
     global $wpdb;
 
     // Delete plugin settings
-    // delete_option('google_api_key');
-    // delete_option('gap_configs');
-    // delete_option('gap_language');
-    // delete_option('gap_clear_log');
+    delete_option('google_api_key');
+    delete_option('gap_configs');
+    delete_option('gap_language');
+    delete_option('gap_clear_log');
 
-    // // Drop the `gap_configs` table
-    // $table_name = $wpdb->prefix . 'gap_configs';
-    // $wpdb->query("DROP TABLE IF EXISTS {$table_name}");
+    // Drop the `gap_configs` table
+    $table_name = $wpdb->prefix . 'gap_configs';
+    $wpdb->query("DROP TABLE IF EXISTS {$table_name}");
 }
 
 // Render Admin Page

@@ -52,6 +52,9 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+Db clean not mandatory for all
+== 3.0.7 ==
+state type solved
 country restriction for free and lang updated
 == 3.0.6 ==
 state type solved

@@ -3,7 +3,7 @@ Contributors: nishathbd31
 Donate link: https://www.facebook.com/nishat.rafi.60
 Tags: Autocomplete,Google Address Autocomplete,Autocomplete Google Address,Address Autocomplete
 Requires at least: 5.0
-Tested up to: 6.7.2
+Tested up to: 6.7.1
 Stable tag: trunk
 Requires PHP: 5.4
 License: GPLv2 or later
@@ -52,6 +52,8 @@ No, It's totally free. No paid version is available.
 2. This is the second screen shot
 
 == Upgrade Notice ==
+Default id issue solved 
+== 3.0.8 ==
 Db clean not mandatory for all
 == 3.0.7 ==
 state type solved

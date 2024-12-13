@@ -2,7 +2,7 @@
 /*
 Plugin Name: Autocomplete Google Address
 Description: Adds Google Address Autocomplete functionality to WordPress forms.
-Version: 3.0.7
+Version: 3.0.8
 Author: Md Nishath Khandakar
 Author URI: https://devsupport.vercel.app/
 License: GPL v2 or later

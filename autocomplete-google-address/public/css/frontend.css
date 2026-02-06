@@ -1,0 +1,8 @@
+/**
+ * All of the CSS for your public-facing functionality should be
+ * included in this file.
+ */
+.pac-container {
+    /* Google Maps Autocomplete dropdown */
+    z-index: 9999 !important;
+}

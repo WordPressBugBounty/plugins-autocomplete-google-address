@@ -1,55 +1,50 @@
-<?php 
-/*
-Plugin Name: Autocomplete Google Address
-Description: Adds Google Address Autocomplete functionality to WordPress forms.
-Version: 3.0.8
-Author: Md Nishath Khandakar
-Author URI: https://devsupport.vercel.app/
-License: GPL v2 or later
-License URI: https://www.gnu.org/licenses/gpl-2.0.html
-Text Domain: ga-auto
-Domain Path: /languages
-*/
+<?php
 
-// Exit if accessed directly
-if (!defined('ABSPATH')) {
-    exit;
+/**
+ * Plugin Name:       Autocomplete Google Address
+ * Plugin URI:        https://wordpress.org/plugins/autocomplete-google-address/
+ * Description:       Add Google Places address autocomplete to any existing form in WordPress using a selector-based mapping builder.
+ * Version:           4.0.0
+ * Author:            Md Nishath Khandakar
+ * Author URI:        https://profiles.wordpress.org/nishatbd31/
+ * License:           GPL-2.0-or-later
+ * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain:       autocomplete-google-address
+ * Domain Path:       /languages
+ */
+// If this file is called directly, abort.
+if ( !defined( 'WPINC' ) ) {
+    die;
 }
-
-// Freemius Integration
-if ( ! function_exists( 'google_autocomplete' ) ) {
+if ( !function_exists( 'google_autocomplete' ) ) {
     // Create a helper function for easy SDK access.
     function google_autocomplete() {
         global $google_autocomplete;
-
-        if ( ! isset( $google_autocomplete ) ) {
+        if ( !isset( $google_autocomplete ) ) {
             // Include Freemius SDK.
-            require_once dirname(__FILE__) . '/freemius/start.php';
-
+            require_once dirname( __FILE__ ) . '/vendor/freemius/start.php';
             $google_autocomplete = fs_dynamic_init( array(
-                'id'                  => '6886',
-                'slug'                => 'form-autocomplete-nish',
-                'premium_slug'        => 'google-autocomplete-premium',
-                'type'                => 'plugin',
-                'public_key'          => 'pk_f939b69fc6977108e74fa9e7e3136',
-                'is_premium'          => false,
-                // If your plugin is a serviceware, set this option to false.
-                'has_premium_version' => false,
-                'has_addons'          => false,
-                'has_paid_plans'      => true,
-                'trial'               => array(
+                'id'              => '6886',
+                'slug'            => 'form-autocomplete-nish',
+                'premium_slug'    => 'google-autocomplete-premium',
+                'type'            => 'plugin',
+                'public_key'      => 'pk_f939b69fc6977108e74fa9e7e3136',
+                'is_premium'      => false,
+                'has_addons'      => false,
+                'has_paid_plans'  => true,
+                'trial'           => array(
                     'days'               => 3,
                     'is_require_payment' => true,
                 ),
-                'has_affiliation'     => 'all',
-                'menu'                => array(
-                    'slug'           => 'google-autocomplete-plugin',
-                    'first-path'     => 'admin.php?page=google-autocomplete-plugin',
-                    'support'        => false,
+                'has_affiliation' => 'all',
+                'menu'            => array(
+                    'slug'       => 'edit.php?post_type=aga_form',
+                    'first-path' => 'admin.php?page=aga-settings',
+                    'support'    => false,
                 ),
+                'is_live'         => true,
             ) );
         }
-
         return $google_autocomplete;
     }
 
@@ -58,87 +53,35 @@ if ( ! function_exists( 'google_autocomplete' ) ) {
     // Signal that SDK was initiated.
     do_action( 'google_autocomplete_loaded' );
 }
-// Define constants
-define('GAP_PLUGIN_DIR', plugin_dir_path(__FILE__));
-define('GAP_PLUGIN_URL', plugin_dir_url(__FILE__));
-
-// // Include necessary files
-// require_once GAP_PLUGIN_DIR . 'includes/class-rest-api.php';
-require_once GAP_PLUGIN_DIR . 'includes/class-autocomplete-api.php';
-require_once GAP_PLUGIN_DIR . 'includes/class-enqueue-scripts.php';
-
-
-
-
-// Database Table Creation on Activation
-register_activation_hook(__FILE__, 'gap_create_db_table');
-function gap_create_db_table() {
-    global $wpdb;
-
-    $table_name = $wpdb->prefix . 'gap_configs';
-    $charset_collate = $wpdb->get_charset_collate();
-
-    $sql = "CREATE TABLE $table_name (
-        id INT NOT NULL AUTO_INCREMENT,
-        config_name VARCHAR(255) NOT NULL,
-        api_key TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (id)
-    ) $charset_collate;";
-
-    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-    dbDelta($sql);
+/**
+ * Currently plugin version.
+ */
+define( 'AGA_VERSION', '1.0.0' );
+/**
+ * Plugin directory path.
+ */
+define( 'AGA_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+/**
+ * Plugin directory URL.
+ */
+define( 'AGA_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
+/**
+ * The core plugin class that is used to define internationalization,
+ * admin-specific hooks, and public-facing site hooks.
+ */
+require AGA_PLUGIN_DIR . 'includes/class-aga-plugin.php';
+/**
+ * Begins execution of the plugin.
+ *
+ * Since everything within the plugin is registered via hooks,
+ * then kicking off the plugin from this point in the file does
+ * not affect the page life cycle.
+ *
+ * @since    1.0.0
+ */
+function run_aga_plugin() {
+    $plugin = new AGA_Plugin();
+    $plugin->run();
 }
 
-// // Freemius Uninstall Hook
-google_autocomplete()->add_action('after_uninstall', 'google_autocomplete_uninstall_cleanup');
-
-// Uninstall Cleanup Logic
-function google_autocomplete_uninstall_cleanup() {
-    global $wpdb;
-
-    // Delete plugin settings
-    delete_option('google_api_key');
-    delete_option('gap_configs');
-    delete_option('gap_language');
-    delete_option('gap_clear_log');
-
-    // Drop the `gap_configs` table
-    $table_name = $wpdb->prefix . 'gap_configs';
-    $wpdb->query("DROP TABLE IF EXISTS {$table_name}");
-}
-
-// Render Admin Page
-function gap_render_admin_page() {
-    $page = isset($_GET['page']) && $_GET['page'] === 'google-autocomplete-settings' ? 'settings' : 'configurations';
-    ?>
-    <div id="root" class="wrap">
-        <h1>Google Autocomplete <?php echo ucfirst($page); ?></h1>
-    </div>
-    <script>
-        window.gapPageContext = "<?php echo esc_js($page); ?>";
-    </script>
-    <?php
-}
-
-// Add Admin Menu
-add_action('admin_menu', function () {
-    add_menu_page(
-        'Google Autocomplete',
-        'Autocomplete',
-        'manage_options',
-        'google-autocomplete-plugin',
-        'gap_render_admin_page',
-        'dashicons-location-alt',
-        20 // Position in the menu
-    );
-
-    add_submenu_page(
-        'google-autocomplete-plugin',
-        'Autocomplete Settings',
-        'Settings',
-        'manage_options',
-        'google-autocomplete-settings',
-        'gap_render_admin_page'
-    );
-});
+run_aga_plugin();

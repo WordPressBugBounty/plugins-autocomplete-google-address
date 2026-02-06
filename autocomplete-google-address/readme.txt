@@ -1,102 +1,66 @@
 === Autocomplete Google Address ===
-Contributors: nishathbd31
-Donate link: https://www.facebook.com/nishat.rafi.60
-Tags: Autocomplete,Google Address Autocomplete,Autocomplete Google Address,Address Autocomplete
-Requires at least: 5.0
-Tested up to: 6.7.1
-Stable tag: trunk
-Requires PHP: 5.4
-License: GPLv2 or later
+Contributors: nishatbd31, freemius
+Tags: google, maps, places, autocomplete, address, form, woocommerce, contact form 7
+Requires at least: 5.4
+Tested up to: 6.9
+Stable tag: 1.0.0
+License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-This plugin will help you to use Place Autocomplete API key.
+Add Google Places address autocomplete to any existing form in WordPress using a selector-based mapping builder.
 
 == Description ==
 
-This plugin will help you to use Place Autocomplete API key to enable address auto-completion to any text input fields.You just need to fill the text input ID. You can add multiple input by using " , ".
-[youtube https://youtu.be/NO1CFjuyWqo?si=MgAOCYbxx16vNYJP]
+Tired of manually typing addresses? Autocomplete Google Address integrates the power of Google Places Autocomplete with any form on your WordPress site.
+
+This plugin doesn't force you to create new forms. Instead, it provides a powerful, selector-based "form builder" that lets you map Google's rich address data to your *existing* form fields. It's compatible with WooCommerce, Contact Form 7, WPForms, Gravity Forms, and virtually any other form.
+
+**Key Features:**
+
+*   **Works with Any Form:** Add address autocomplete to checkout fields, contact forms, registration forms, and more.
+*   **Selector-Based Mapping:** A simple but powerful UI lets you connect Google Address components to your form fields using CSS selectors (like `#billing_address` or `.shipping-street`).
+*   **Two Powerful Modes:**
+    *   **Single Line Mode:** A single field autocompletes the full, formatted address. Perfect for simple address fields.
+    *   **Smart Mapping Mode:** One field triggers the autocomplete, and the plugin intelligently fills multiple fields like Street, City, State, Zip, and Country.
+*   **Unlimited Configurations:** Create as many mapping configurations as you need. You can have different setups for your checkout form and your contact form on the same site.
+*   **Developer Friendly:** Use the `[aga_form id="123"]` shortcode or the `aga_render_form_config(123)` PHP function to apply configurations exactly where you need them.
+*   **Conflict Prevention:** Includes an option to prevent the plugin from loading the Google Maps API if another plugin or your theme already does.
 
 == Installation ==
-1. Upload the plugin files to the `/wp-content/plugins/plugin-name` directory, or install the plugin through the WordPress plugins screen directly.
-1. Activate the plugin through the 'Plugins' screen in WordPress
-1. Use the Settings->Plugin Name screen to configure the plugin
-1. (Make your instructions match the desired user flow for activating and installing your plugin. Include any steps that might be needed for explanatory purposes)
 
-
-
-== Installation ==
-
-This section describes how to install the plugin and get it working.
-
-e.g.
-
-1. Upload the plugin files to the `/wp-content/plugins/plugin-name` directory, or install the plugin through the WordPress plugins screen directly.
-1. Activate the plugin through the 'Plugins' screen in WordPress
-1. Use the Settings->Plugin Name screen to configure the plugin
-1. (Make your instructions match the desired user flow for activating and installing your plugin. Include any steps that might be needed for explanatory purposes)
+1.  Upload the `autocomplete-google-address` folder to the `/wp-content/plugins/` directory.
+2.  Activate the plugin through the 'Plugins' menu in WordPress.
+3.  Go to **Google Address > Settings** and enter your Google Maps API Key. You must enable the **Places API** and **Maps JavaScript API** for your key in the Google Cloud Console.
+4.  Go to **Google Address > Add New** to create your first form configuration.
+5.  Follow the instructions on the Help page (**Google Address > Help**) to find your form field selectors and set up your mapping.
+6.  Place the generated shortcode (e.g., `[aga_form id="123"]`) on the page where your form is located.
 
 == Frequently Asked Questions ==
 
-= Can i use multiple text ID? =
+= Does this work with WooCommerce checkout? =
 
-Yes,you can use by separating comma.
+Yes. You can use the "Smart Mapping" mode to map the address components to the WooCommerce billing and shipping address fields.
 
-= Is this a paid plugin? =
+= Do I need a Google Maps API Key? =
 
-No, It's totally free. No paid version is available.
+Yes, a Google Maps API key is required. You can get one from the [Google Cloud Platform Console](https://console.cloud.google.com/). You must enable the "Places API" and "Maps JavaScript API" for your key.
 
+= Can I restrict results to a specific country? =
+
+Yes. You can set a default country restriction in the plugin's global Settings page.
 
 == Screenshots ==
 
-1. This screen shot description corresponds to screenshot-1.(png|jpg|jpeg|gif).
-2. This is the second screen shot
+1.  The configuration builder interface.
+2.  The global settings page.
+3.  Example of autocomplete on a frontend form.
 
-== Upgrade Notice ==
-Default id issue solved 
-== 3.0.8 ==
-Db clean not mandatory for all
-== 3.0.7 ==
-state type solved
-country restriction for free and lang updated
-== 3.0.6 ==
-state type solved
-== 3.0.5 ==
-Search type and address long shot solved
-== 3.0.4 ==
-Address type long fixed
-== 3.0.3 ==
-search type error, place name added
-== 3.0.1 ==
-This a major update. Before update take a coppy off your previous version plugin.
-In this version you will see lot's of improvments and style changes. 
-== 3.0.0 ==
-design upgrade, developer support added, map api consol error solved, typescript added for better readability and code maintenance, tested with lates wordpress 6.7
-== 2.0.3 ==
-simple upgrade
-== 2.0.2 ==
-Payment system to upgrade
-== 2.0.1 ==
-version compatablity 
-new checkout
-setup video
-= 1.9.6=
-= 1.9.3=
-version compatablity 
 == Changelog ==
-= 1.9.2=
-multiple autocomplete issue solved.
-= 1.9.1=
-Missing address solved (Ninja Form,Gravity form and all froms)
 
+= 1.0.0 =
+*   Initial release.
 
 == Upgrade Notice ==
-= 1.9.1=
-tested with wp 6.1.1 nothing changed
 
-= 1.9.1=
-jquery bug fixed you will not lose any data after update
-= 1.8 =
-jQuery On load function updated to support latest jQuery version
-== Upgrade Notice ==
-= 1.9 =
-WordPress 5.7 version compatibility
+= 1.0.0 =
+*   The first version of the plugin. No upgrade notices yet.

@@ -137,6 +137,8 @@ public function add_custom_add_new_menu() {
             'Nish_aga_smart_place_id_selector',
             'Nish_aga_state_format',
             'Nish_aga_country_format',
+            'Nish_aga_form_preset',
+            'Nish_aga_map_container_selector',
         );
 
         foreach ( $fields as $field ) {
@@ -151,10 +153,17 @@ public function add_custom_add_new_menu() {
             }
         }
 
+        // Checkbox fields
         update_post_meta(
             $post_id,
             'Nish_aga_activate_globally',
             isset( $_POST['Nish_aga_activate_globally'] ) ? '1' : ''
+        );
+
+        update_post_meta(
+            $post_id,
+            'Nish_aga_show_map_preview',
+            isset( $_POST['Nish_aga_show_map_preview'] ) ? '1' : ''
         );
 
         if ( isset( $_POST['Nish_aga_load_on_pages'] ) && is_array( $_POST['Nish_aga_load_on_pages'] ) ) {

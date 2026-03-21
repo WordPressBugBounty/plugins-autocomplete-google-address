@@ -60,11 +60,18 @@ class AGA_Admin {
 	 */
 	public function enqueue_styles() {
         $screen = get_current_screen();
-        if ( ! $screen || 'aga_form' !== $screen->post_type ) {
+        if ( ! $screen ) {
             return;
         }
 
-		wp_enqueue_style( $this->plugin_name, AGA_PLUGIN_URL . 'admin/css/admin.css', array(), $this->version, 'all' );
+        $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard' ), true ) );
+
+        if ( ! $is_plugin_page ) {
+            return;
+        }
+
+		wp_enqueue_style( $this->plugin_name, AGA_PLUGIN_URL . 'admin/css/admin.css', array(), filemtime( AGA_PLUGIN_DIR . 'admin/css/admin.css' ), 'all' );
         wp_enqueue_style( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css' );
 
 	}
@@ -76,17 +83,24 @@ class AGA_Admin {
 	 */
 	public function enqueue_scripts() {
         $screen = get_current_screen();
-        if ( ! $screen || 'aga_form' !== $screen->post_type ) {
+        if ( ! $screen ) {
             return;
         }
 
-		wp_enqueue_script( $this->plugin_name, AGA_PLUGIN_URL . 'admin/js/admin.js', array( 'jquery', 'select2' ), $this->version, false );
-        wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array( 'jquery' ), null, true );
-        
-        // Localize script data for admin.js
+        $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard' ), true ) );
+
+        if ( ! $is_plugin_page ) {
+            return;
+        }
+
+		wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array( 'jquery' ), null, true );
+		wp_enqueue_script( $this->plugin_name, AGA_PLUGIN_URL . 'admin/js/admin.js', array( 'jquery', 'select2' ), filemtime( AGA_PLUGIN_DIR . 'admin/js/admin.js' ), true );
+
         wp_localize_script( $this->plugin_name, 'aga_admin_data', array(
             'ajax_url' => admin_url( 'admin-ajax.php' ),
             'nonce'    => wp_create_nonce( 'aga_admin_nonce' ),
+            'is_paying' => function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying(),
         ) );
 	}
     
@@ -136,5 +150,71 @@ class AGA_Admin {
      */
     public function render_help_page() {
         require_once AGA_PLUGIN_DIR . 'admin/views/html-admin-page-help.php';
+    }
+
+    /**
+     * Renders the WhatsApp chat widget on plugin admin pages.
+     */
+    public function render_whatsapp_chat() {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return;
+        }
+
+        $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard' ), true ) );
+
+        if ( ! $is_plugin_page ) {
+            return;
+        }
+
+        $whatsapp_number = '8801767591988';
+        $default_message = rawurlencode( 'Hi, I need help with the Autocomplete Google Address plugin.' );
+        $whatsapp_url    = 'https://wa.me/' . $whatsapp_number . '?text=' . $default_message;
+        ?>
+        <div id="aga-whatsapp-widget">
+            <div id="aga-whatsapp-popup" style="display:none;">
+                <div class="aga-wa-popup-header">
+                    <div class="aga-wa-popup-header-info">
+                        <div class="aga-wa-avatar">N</div>
+                        <div>
+                            <div class="aga-wa-name">Nishath - Plugin Support</div>
+                            <div class="aga-wa-status">Typically replies within minutes</div>
+                        </div>
+                    </div>
+                    <button type="button" id="aga-wa-close" aria-label="Close">&times;</button>
+                </div>
+                <div class="aga-wa-popup-body">
+                    <div class="aga-wa-message">
+                        <p>Hi there! Need help setting up the plugin or have any questions? I'm available 24/7 to assist you.</p>
+                        <span class="aga-wa-time"><?php echo esc_html( current_time( 'g:i A' ) ); ?></span>
+                    </div>
+                </div>
+                <div class="aga-wa-popup-footer">
+                    <a href="<?php echo esc_url( $whatsapp_url ); ?>" target="_blank" rel="noopener noreferrer" class="aga-wa-send-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.344 0-4.507-.796-6.227-2.132l-.435-.344-2.636.884.884-2.636-.344-.435A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+                        Start Chat
+                    </a>
+                </div>
+            </div>
+            <button type="button" id="aga-whatsapp-btn" aria-label="Chat on WhatsApp">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="#fff"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.284 7.034L.789 23.492a.5.5 0 00.611.611l4.458-1.495A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.344 0-4.507-.796-6.227-2.132l-.435-.344-2.636.884.884-2.636-.344-.435A9.96 9.96 0 012 12C2 6.486 6.486 2 12 2s10 4.486 10 10-4.486 10-10 10z"/></svg>
+            </button>
+        </div>
+        <script>
+        (function(){
+            var btn = document.getElementById('aga-whatsapp-btn');
+            var popup = document.getElementById('aga-whatsapp-popup');
+            var closeBtn = document.getElementById('aga-wa-close');
+            btn.addEventListener('click', function(){
+                var isOpen = popup.style.display === 'flex';
+                popup.style.display = isOpen ? 'none' : 'flex';
+            });
+            closeBtn.addEventListener('click', function(){
+                popup.style.display = 'none';
+            });
+        })();
+        </script>
+        <?php
     }
 }

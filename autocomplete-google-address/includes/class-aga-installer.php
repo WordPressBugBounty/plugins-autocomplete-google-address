@@ -63,8 +63,9 @@ class AGA_Installer {
         // Flush rewrite rules to ensure the CPT URLs work correctly.
         flush_rewrite_rules();
 
-        // Set a transient to show a welcome/activation notice.
+        // Set transients for activation notice and setup wizard.
         set_transient( 'aga_activation_notice', true, 5 );
+        set_transient( 'aga_show_wizard', true, 30 );
     }
 
     /**

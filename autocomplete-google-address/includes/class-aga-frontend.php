@@ -82,7 +82,7 @@ class AGA_Frontend {
             return;
         }
 
-		wp_enqueue_style( $this->plugin_name, AGA_PLUGIN_URL . 'public/css/frontend.css', array(), $this->version, 'all' );
+		wp_enqueue_style( $this->plugin_name, AGA_PLUGIN_URL . 'public/css/frontend.css', array(), filemtime( AGA_PLUGIN_DIR . 'public/css/frontend.css' ), 'all' );
 	}
 
 	/**
@@ -97,7 +97,7 @@ class AGA_Frontend {
 
         $this->enqueue_google_maps_api();
 
-		wp_enqueue_script( $this->plugin_name, AGA_PLUGIN_URL . 'public/js/frontend.js', array( 'jquery' ), $this->version, true );
+		wp_enqueue_script( $this->plugin_name, AGA_PLUGIN_URL . 'public/js/frontend.js', array( 'jquery' ), filemtime( AGA_PLUGIN_DIR . 'public/js/frontend.js' ), true );
         
         $this->localize_script_data();
 	}
@@ -170,6 +170,8 @@ class AGA_Frontend {
                 'key'       => $api_key,
                 'libraries' => 'places',
                 'language'  => $language,
+                'v'         => 'weekly',
+                'loading'   => 'async',
             ),
             'https://maps.googleapis.com/maps/api/js'
         );
@@ -194,6 +196,9 @@ class AGA_Frontend {
                 $configs[] = AGA_Autocomplete::get_js_config( $form_id );
             }
         }
+
+        // Allow other modules (e.g., WooCommerce) to inject configs.
+        $configs = apply_filters( 'aga_form_configs', $configs );
 
         wp_localize_script( $this->plugin_name, 'aga_form_configs', $configs );
     }

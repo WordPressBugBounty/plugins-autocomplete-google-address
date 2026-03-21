@@ -121,17 +121,12 @@ class AGA_Plugin {
         require_once AGA_PLUGIN_DIR . 'includes/class-aga-settings.php';
         require_once AGA_PLUGIN_DIR . 'includes/class-aga-forms.php';
         require_once AGA_PLUGIN_DIR . 'includes/class-aga-autocomplete.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-presets.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-wizard.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-woocommerce.php';
 
-
-		/**
-		 * The class responsible for defining all actions that occur in the public-facing
-		 * side of the site.
-		 */
 		require_once AGA_PLUGIN_DIR . 'includes/class-aga-frontend.php';
-        
-        /**
-         * Helper functions.
-         */
+
         require_once AGA_PLUGIN_DIR . 'helpers/aga-helpers.php';
 
 
@@ -168,10 +163,12 @@ class AGA_Plugin {
 		$plugin_admin = new AGA_Admin( $this->get_plugin_name(), $this->get_version() );
         $plugin_settings = new AGA_Settings();
         $plugin_forms = new AGA_Forms();
+        new AGA_Wizard();
         
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
         $this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
+        $this->loader->add_action( 'admin_footer', $plugin_admin, 'render_whatsapp_chat' );
 
         // Settings page hooks
         $this->loader->add_action( 'admin_init', $plugin_settings, 'register_settings' );
@@ -195,6 +192,7 @@ class AGA_Plugin {
 	private function define_public_hooks() {
 
 		$plugin_public = new AGA_Frontend( $this->get_plugin_name(), $this->get_version() );
+        new AGA_WooCommerce();
 
         // Find globally active forms early.
         $this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'load_automatic_forms' );

@@ -35,11 +35,13 @@ class AGA_Autocomplete {
             'selectors'     => array(),
         );
 
+        $is_paying = function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying();
+
         if ( 'single_line' === $mode ) {
             $config['selectors']['lat'] = get_post_meta( $form_id, 'Nish_aga_lat_selector', true );
             $config['selectors']['lng'] = get_post_meta( $form_id, 'Nish_aga_lng_selector', true );
             $config['selectors']['place_id'] = get_post_meta( $form_id, 'Nish_aga_place_id_selector', true );
-        } elseif ( 'smart_mapping' === $mode ) {
+        } elseif ( 'smart_mapping' === $mode && $is_paying ) {
             $config['selectors']['street'] = get_post_meta( $form_id, 'Nish_aga_street_selector', true );
             $config['selectors']['city'] = get_post_meta( $form_id, 'Nish_aga_city_selector', true );
             $config['selectors']['state'] = get_post_meta( $form_id, 'Nish_aga_state_selector', true );
@@ -55,11 +57,21 @@ class AGA_Autocomplete {
             );
         }
 
-        // Add per-config settings for autocomplete restrictions
+        // Add per-config settings for autocomplete restrictions (Pro feature)
         $config['component_restrictions'] = array();
-        $country_restriction = get_post_meta( $form_id, 'Nish_aga_country_restriction', true );
-        if ( ! empty( $country_restriction ) ) {
-            $config['component_restrictions']['country'] = $country_restriction;
+        if ( $is_paying ) {
+            $country_restriction = get_post_meta( $form_id, 'Nish_aga_country_restriction', true );
+            if ( ! empty( $country_restriction ) ) {
+                $config['component_restrictions']['country'] = $country_restriction;
+            }
+        }
+
+        // Map preview (Pro feature)
+        $config['show_map_preview'] = false;
+        if ( $is_paying ) {
+            $show_map = get_post_meta( $form_id, 'Nish_aga_show_map_preview', true );
+            $config['show_map_preview'] = ( '1' === $show_map );
+            $config['map_container_selector'] = get_post_meta( $form_id, 'Nish_aga_map_container_selector', true );
         }
 
         // Clean up empty selectors

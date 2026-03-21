@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Plugin Name:       Autocomplete Google Address
+ * Plugin Name: Autocomplete Google Address (Premium)
  * Plugin URI:        https://wordpress.org/plugins/autocomplete-google-address/
  * Description:       Add Google Places address autocomplete to any existing form in WordPress using a selector-based mapping builder.
- * Version:           4.0.0
+ * Version:           5.0.0
  * Author:            Md Nishath Khandakar
  * Author URI:        https://profiles.wordpress.org/nishatbd31/
  * License:           GPL-2.0-or-later
@@ -24,25 +24,25 @@ if ( !function_exists( 'google_autocomplete' ) ) {
             // Include Freemius SDK.
             require_once dirname( __FILE__ ) . '/vendor/freemius/start.php';
             $google_autocomplete = fs_dynamic_init( array(
-                'id'              => '6886',
-                'slug'            => 'form-autocomplete-nish',
-                'premium_slug'    => 'google-autocomplete-premium',
-                'type'            => 'plugin',
-                'public_key'      => 'pk_f939b69fc6977108e74fa9e7e3136',
-                'is_premium'      => false,
-                'has_addons'      => false,
-                'has_paid_plans'  => true,
-                'trial'           => array(
+                'id'               => '6886',
+                'slug'             => 'form-autocomplete-nish',
+                'type'             => 'plugin',
+                'public_key'       => 'pk_f939b69fc6977108e74fa9e7e3136',
+                'is_premium'       => false,
+                'has_addons'       => false,
+                'has_paid_plans'   => true,
+                'trial'            => array(
                     'days'               => 3,
                     'is_require_payment' => true,
                 ),
-                'has_affiliation' => 'all',
-                'menu'            => array(
+                'has_affiliation'  => 'all',
+                'menu'             => array(
                     'slug'       => 'edit.php?post_type=aga_form',
                     'first-path' => 'admin.php?page=aga-settings',
                     'support'    => false,
                 ),
-                'is_live'         => true,
+                'is_live'          => true,
+                'is_org_compliant' => true,
             ) );
         }
         return $google_autocomplete;
@@ -56,7 +56,7 @@ if ( !function_exists( 'google_autocomplete' ) ) {
 /**
  * Currently plugin version.
  */
-define( 'AGA_VERSION', '1.0.0' );
+define( 'AGA_VERSION', '5.0.0' );
 /**
  * Plugin directory path.
  */

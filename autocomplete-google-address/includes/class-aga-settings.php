@@ -73,10 +73,10 @@ class AGA_Settings {
         } else {
             $new_input['do_not_load_gmaps_api'] = 0;
         }
-        
 
-        
-
+        // WooCommerce settings
+        $new_input['woocommerce_enabled'] = isset( $input['woocommerce_enabled'] ) ? absint( $input['woocommerce_enabled'] ) : 0;
+        $new_input['woocommerce_block_checkout'] = isset( $input['woocommerce_block_checkout'] ) ? absint( $input['woocommerce_block_checkout'] ) : 0;
 
         return $new_input;
     }

@@ -1,23 +1,91 @@
 (function ($) {
     'use strict';
 
+    // Analytics tracking helper (Pro feature — fire-and-forget).
+    var agaTrack = {
+        _lastSearchTime: 0,
+        _minInterval: 5000, // max 1 search event per 5 seconds
+
+        send: function (eventType, extra) {
+            if (typeof aga_frontend_data === 'undefined' || !aga_frontend_data.ajax_url) return;
+
+            var data = {
+                action: 'aga_track_event',
+                nonce: aga_frontend_data.nonce,
+                event_type: eventType
+            };
+
+            if (extra) {
+                if (extra.form_id) data.form_id = extra.form_id;
+                if (extra.country) data.country = extra.country;
+                if (extra.city) data.city = extra.city;
+            }
+
+            // Use sendBeacon for fire-and-forget when available, else plain AJAX.
+            if (navigator.sendBeacon) {
+                var formData = new FormData();
+                for (var key in data) {
+                    if (data.hasOwnProperty(key)) formData.append(key, data[key]);
+                }
+                navigator.sendBeacon(aga_frontend_data.ajax_url, formData);
+            } else {
+                $.post(aga_frontend_data.ajax_url, data);
+            }
+        },
+
+        trackSearch: function (formId) {
+            var now = Date.now();
+            if (now - agaTrack._lastSearchTime < agaTrack._minInterval) return;
+            agaTrack._lastSearchTime = now;
+            agaTrack.send('search', { form_id: formId || 0 });
+        },
+
+        trackSelection: function (formId, country, city) {
+            agaTrack.send('selection', { form_id: formId || 0, country: country || '', city: city || '' });
+        }
+    };
+
     var aga = {
         init: function () {
             if (typeof window.aga_form_configs === 'undefined' || window.aga_form_configs.length === 0) {
                 return;
             }
 
+            // Conflict detection: note if Google Maps API was already loaded by another source
+            if (window.google && window.google.maps) {
+                console.info('Autocomplete Google Address: Google Maps API detected from another source. Using existing instance.');
+            }
+
             var checkGoogle = setInterval(function () {
                 if (typeof window.google !== 'undefined' && typeof window.google.maps !== 'undefined') {
                     clearInterval(checkGoogle);
-                    google.maps.importLibrary('places').then(function () {
+                    // importLibrary is only available with v=weekly. If another plugin loaded
+                    // the Maps API without v=weekly, fall back to checking if places is ready.
+                    if (typeof google.maps.importLibrary === 'function') {
+                        google.maps.importLibrary('places').then(function () {
+                            aga.run();
+                        });
+                    } else if (typeof google.maps.places !== 'undefined') {
                         aga.run();
-                    });
+                    } else {
+                        // Wait for places library to load (old-style loading).
+                        var checkPlaces = setInterval(function () {
+                            if (typeof google.maps.places !== 'undefined') {
+                                clearInterval(checkPlaces);
+                                aga.run();
+                            }
+                        }, 100);
+                    }
                 }
             }, 100);
         },
 
+        // Detect if new Places API (AutocompleteSuggestion) is available.
+        useNewAPI: typeof google !== 'undefined' && google.maps && google.maps.places && typeof google.maps.places.AutocompleteSuggestion !== 'undefined',
+
         run: function () {
+            // Re-check at run time since API may have loaded after init.
+            aga.useNewAPI = typeof google.maps.places.AutocompleteSuggestion !== 'undefined';
             window.aga_form_configs.forEach(function (config) {
                 aga.setupAutocomplete(config);
             });
@@ -26,9 +94,14 @@
         setupAutocomplete: function (config) {
             var mainInput = document.querySelector(config.main_selector);
             if (!mainInput) {
-                console.warn('Autocomplete Google Address: Main input not found for selector:', config.main_selector);
                 return;
             }
+
+            // Skip if already initialized (prevents double-init on dynamic re-renders).
+            if (mainInput.getAttribute('data-aga-init') === '1') {
+                return;
+            }
+            mainInput.setAttribute('data-aga-init', '1');
 
             var wrapper = mainInput.parentNode;
             if (window.getComputedStyle(wrapper).position === 'static') {
@@ -41,11 +114,12 @@
             wrapper.appendChild(dropdown);
 
             var state = {
-                sessionToken: new google.maps.places.AutocompleteSessionToken(),
+                sessionToken: aga.useNewAPI ? new google.maps.places.AutocompleteSessionToken() : null,
                 debounceTimer: null,
                 activeIndex: -1,
                 isSelecting: false,
-                isFetching: false
+                isFetching: false,
+                legacyService: aga.useNewAPI ? null : new google.maps.places.AutocompleteService()
             };
 
             mainInput.setAttribute('autocomplete', 'off');
@@ -96,38 +170,187 @@
                     state.activeIndex = -1;
                 }
             });
+
+            // Saved Addresses focus handler (Pro feature)
+            if (config.saved_addresses && aga_frontend_data.is_logged_in) {
+                aga.setupSavedAddresses(mainInput, dropdown, config, state);
+            }
+
+            // Geolocation button (Pro feature)
+            if (config.geolocation) {
+                aga.setupGeolocationButton(mainInput, wrapper, config);
+            }
+        },
+
+        setupGeolocationButton: function (mainInput, wrapper, config) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'aga-geolocation-btn';
+            btn.title = 'Use my current location';
+            btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg>';
+
+            // Add padding-right to the input so text doesn't overlap the button
+            mainInput.style.paddingRight = '38px';
+
+            wrapper.appendChild(btn);
+
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                    aga.showGeolocationError(btn, 'HTTPS required for geolocation');
+                    return;
+                }
+
+                if (!navigator.geolocation) {
+                    aga.showGeolocationError(btn, 'Geolocation not supported');
+                    return;
+                }
+
+                // Show loading state
+                btn.classList.add('aga-loading');
+                btn.disabled = true;
+
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        var latLng = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        // Use existing reverseGeocode method
+                        aga.reverseGeocode(latLng, mainInput, config);
+
+                        // Show map preview if enabled
+                        if (config.show_map_preview) {
+                            aga.showMapPreview(mainInput, latLng, config);
+                        }
+
+                        // Remove loading state
+                        btn.classList.remove('aga-loading');
+                        btn.disabled = false;
+                    },
+                    function (error) {
+                        btn.classList.remove('aga-loading');
+                        btn.disabled = false;
+
+                        var msg = 'Location unavailable';
+                        if (error.code === error.PERMISSION_DENIED) {
+                            msg = 'Location access denied';
+                        } else if (error.code === error.TIMEOUT) {
+                            msg = 'Location request timed out';
+                        }
+                        aga.showGeolocationError(btn, msg);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 300000
+                    }
+                );
+            });
+        },
+
+        showGeolocationError: function (btn, message) {
+            // Remove any existing error tooltip
+            var existing = btn.parentNode.querySelector('.aga-geolocation-error');
+            if (existing) existing.remove();
+
+            var tooltip = document.createElement('div');
+            tooltip.className = 'aga-geolocation-error';
+            tooltip.textContent = message;
+            btn.parentNode.appendChild(tooltip);
+
+            // Position relative to button
+            var btnRect = btn.getBoundingClientRect();
+            var wrapperRect = btn.parentNode.getBoundingClientRect();
+            tooltip.style.right = (wrapperRect.right - btnRect.right) + 'px';
+            tooltip.style.top = (btn.offsetTop + btn.offsetHeight + 4) + 'px';
+
+            setTimeout(function () {
+                if (tooltip.parentNode) tooltip.remove();
+            }, 3000);
         },
 
         fetchSuggestions: function (query, config, state, dropdown, mainInput) {
-            var request = {
-                input: query,
-                sessionToken: state.sessionToken
-            };
-
-            if (config.component_restrictions && config.component_restrictions.country) {
-                var country = config.component_restrictions.country;
-                request.includedRegionCodes = Array.isArray(country) ? country : [country];
-            }
-
-            // Show loading state
             state.isFetching = true;
             aga.showLoading(dropdown, mainInput);
 
-            google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
-                .then(function (result) {
+            if (aga.useNewAPI) {
+                // New Places API
+                var request = {
+                    input: query,
+                    sessionToken: state.sessionToken
+                };
+
+                if (config.component_restrictions && config.component_restrictions.country) {
+                    var country = config.component_restrictions.country;
+                    request.includedRegionCodes = Array.isArray(country) ? country : [country];
+                }
+
+                if (config.place_types) {
+                    var typeMap = {
+                        'address': ['street_address', 'subpremise', 'premise'],
+                        'geocode': ['geocode'],
+                        'establishment': ['establishment'],
+                        '(regions)': ['locality', 'sublocality', 'administrative_area_level_1', 'administrative_area_level_2', 'country'],
+                        '(cities)': ['locality']
+                    };
+                    if (typeMap[config.place_types]) {
+                        request.includedPrimaryTypes = typeMap[config.place_types];
+                    }
+                }
+
+                google.maps.places.AutocompleteSuggestion.fetchAutocompleteSuggestions(request)
+                    .then(function (result) {
+                        state.isFetching = false;
+                        var suggestions = result.suggestions || [];
+                        if (suggestions.length) {
+                            aga.renderDropdown(suggestions, dropdown, mainInput, config, state);
+                            agaTrack.trackSearch(config.form_id);
+                        } else {
+                            aga.showNoResults(dropdown, mainInput);
+                        }
+                    })
+                    .catch(function (err) {
+                        state.isFetching = false;
+                        console.warn('Autocomplete Google Address: Suggestion fetch failed:', err);
+                        aga.hideDropdown(dropdown);
+                    });
+            } else {
+                // Legacy AutocompleteService fallback
+                var legacyRequest = { input: query };
+
+                if (config.component_restrictions && config.component_restrictions.country) {
+                    legacyRequest.componentRestrictions = { country: config.component_restrictions.country };
+                }
+
+                if (config.place_types) {
+                    legacyRequest.types = [config.place_types];
+                }
+
+                state.legacyService.getPlacePredictions(legacyRequest, function (predictions, status) {
                     state.isFetching = false;
-                    var suggestions = result.suggestions || [];
-                    if (suggestions.length) {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && predictions && predictions.length) {
+                        // Wrap legacy predictions to match new API shape
+                        var suggestions = predictions.map(function (p) {
+                            return {
+                                placePrediction: {
+                                    text: { toString: function () { return p.description; } },
+                                    placeId: p.place_id,
+                                    _legacy: true,
+                                    toPlace: function () { return null; }
+                                }
+                            };
+                        });
                         aga.renderDropdown(suggestions, dropdown, mainInput, config, state);
+                        agaTrack.trackSearch(config.form_id);
                     } else {
                         aga.showNoResults(dropdown, mainInput);
                     }
-                })
-                .catch(function (err) {
-                    state.isFetching = false;
-                    console.warn('Autocomplete Google Address: Suggestion fetch failed:', err);
-                    aga.hideDropdown(dropdown);
                 });
+            }
         },
 
         showLoading: function (dropdown, mainInput) {
@@ -191,10 +414,14 @@
                 dropdown.appendChild(li);
             });
 
-            // Google attribution (required by ToS)
+            // Attribution (Google ToS requires attribution when using their API)
             var attribution = document.createElement('li');
             attribution.className = 'aga-autocomplete-attribution';
-            attribution.innerHTML = '<img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3_hdpi.png" alt="Powered by Google" height="14" />';
+            if (typeof aga_frontend_data !== 'undefined' && aga_frontend_data.attribution_text) {
+                attribution.textContent = aga_frontend_data.attribution_text;
+            } else {
+                attribution.innerHTML = '<img src="https://maps.gstatic.com/mapfiles/api-3/images/powered-by-google-on-white3_hdpi.png" alt="Powered by Google" height="14" />';
+            }
             dropdown.appendChild(attribution);
 
             aga.positionDropdown(dropdown, mainInput);
@@ -202,35 +429,173 @@
         },
 
         selectPlace: function (prediction, mainInput, config, state) {
-            var place = prediction.toPlace();
-
-            var fields = ['formattedAddress', 'location', 'id'];
-            if (config.mode === 'smart_mapping') {
-                fields.push('addressComponents');
-            }
-
             state.isSelecting = true;
 
-            place.fetchFields({ fields: fields }).then(function () {
-                mainInput.value = place.formattedAddress || '';
-                mainInput.dispatchEvent(new Event('change', { bubbles: true }));
-
-                aga.applyMapping(place, config);
-
-                // Show map preview if enabled
-                if (config.show_map_preview && place.location) {
-                    aga.showMapPreview(mainInput, place.location, config);
+            if (aga.useNewAPI && !prediction._legacy) {
+                // New Places API
+                var place = prediction.toPlace();
+                var fields = ['formattedAddress', 'location', 'id', 'addressComponents'];
+                if (config.mode !== 'smart_mapping') {
+                    // addressComponents needed for analytics tracking even without smart_mapping
                 }
 
-                state.sessionToken = new google.maps.places.AutocompleteSessionToken();
+                place.fetchFields({ fields: fields }).then(function () {
+                    mainInput.value = place.formattedAddress || '';
+                    mainInput.dispatchEvent(new Event('change', { bubbles: true }));
+                    aga.applyMapping(place, config);
 
-                setTimeout(function () {
-                    state.isSelecting = false;
-                }, 100);
+                    if (config.show_map_preview && place.location) {
+                        aga.showMapPreview(mainInput, place.location, config);
+                    }
+
+                    if (aga.useNewAPI) {
+                        state.sessionToken = new google.maps.places.AutocompleteSessionToken();
+                    }
+                    setTimeout(function () { state.isSelecting = false; }, 100);
+
+                    if (config.address_validation) {
+                        aga.validateAddress(mainInput, place.formattedAddress || '', place.id || '');
+                    }
+
+                    // Save address for logged-in users (Pro)
+                    if (config.saved_addresses && aga_frontend_data.is_logged_in) {
+                        aga.saveAddress(place.formattedAddress || '', place.location, place.id || '', place.addressComponents || []);
+                    }
+
+                    // Analytics: track selection with country and city.
+                    var _trackCountry = '', _trackCity = '';
+                    if (place.addressComponents) {
+                        place.addressComponents.forEach(function (c) {
+                            if (c.types && c.types.indexOf('country') !== -1) _trackCountry = c.shortText || c.short_name || '';
+                            if (c.types && c.types.indexOf('locality') !== -1) _trackCity = c.longText || c.long_name || '';
+                        });
+                    }
+                    agaTrack.trackSelection(config.form_id, _trackCountry, _trackCity);
+                });
+            } else {
+                // Legacy PlacesService fallback
+                var placeId = prediction.placeId;
+                var tempDiv = document.createElement('div');
+                var service = new google.maps.places.PlacesService(tempDiv);
+
+                var detailFields = ['formatted_address', 'geometry', 'place_id', 'address_components'];
+
+                service.getDetails({ placeId: placeId, fields: detailFields }, function (result, status) {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && result) {
+                        mainInput.value = result.formatted_address || '';
+                        mainInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+                        // Convert legacy result to new API shape for applyMapping
+                        var placeObj = {
+                            formattedAddress: result.formatted_address,
+                            location: result.geometry ? result.geometry.location : null,
+                            id: result.place_id,
+                            addressComponents: result.address_components ? result.address_components.map(function (c) {
+                                return {
+                                    types: c.types,
+                                    longText: c.long_name,
+                                    shortText: c.short_name
+                                };
+                            }) : []
+                        };
+
+                        aga.applyMapping(placeObj, config);
+
+                        if (config.show_map_preview && placeObj.location) {
+                            aga.showMapPreview(mainInput, placeObj.location, config);
+                        }
+
+                        if (config.address_validation) {
+                            aga.validateAddress(mainInput, placeObj.formattedAddress || '', placeObj.id || '');
+                        }
+
+                        // Save address for logged-in users (Pro)
+                        if (config.saved_addresses && aga_frontend_data.is_logged_in) {
+                            var loc = placeObj.location;
+                            aga.saveAddress(placeObj.formattedAddress || '', loc, placeObj.id || '', placeObj.addressComponents || []);
+                        }
+
+                        // Analytics: track selection with country and city.
+                        var _tCountry = '', _tCity = '';
+                        if (placeObj.addressComponents) {
+                            placeObj.addressComponents.forEach(function (c) {
+                                if (c.types && c.types.indexOf('country') !== -1) _tCountry = c.shortText || c.short_name || '';
+                                if (c.types && c.types.indexOf('locality') !== -1) _tCity = c.longText || c.long_name || '';
+                            });
+                        }
+                        agaTrack.trackSelection(config.form_id, _tCountry, _tCity);
+                    }
+
+                    setTimeout(function () { state.isSelecting = false; }, 100);
+                });
+            }
+        },
+
+        validateAddress: function (mainInput, address, placeId) {
+            if (!address || typeof aga_frontend_data === 'undefined') return;
+
+            var badge = aga.getOrCreateValidationBadge(mainInput);
+            badge.className = 'aga-validation-badge aga-validation-loading';
+            badge.textContent = '';
+            badge.title = '';
+
+            $.ajax({
+                url: aga_frontend_data.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'aga_validate_address',
+                    nonce: aga_frontend_data.nonce,
+                    address: address,
+                    place_id: placeId
+                },
+                success: function (response) {
+                    if (response.success && response.data) {
+                        var level = response.data.level;
+                        var message = response.data.message;
+                        var symbols = {
+                            valid: '\u2713',
+                            warning: '\u26A0',
+                            invalid: '\u2717'
+                        };
+                        var labels = {
+                            valid: 'Verified',
+                            warning: 'Partial match',
+                            invalid: 'Not verified'
+                        };
+                        badge.className = 'aga-validation-badge aga-validation-' + level + ' aga-validation-visible';
+                        badge.innerHTML = '<span>' + (symbols[level] || '') + '</span> ' + (labels[level] || message);
+                        badge.title = message;
+                    } else {
+                        badge.className = 'aga-validation-badge aga-validation-invalid aga-validation-visible';
+                        badge.innerHTML = '<span>\u2717</span> Not verified';
+                        badge.title = (response.data && response.data.message) || 'Validation failed.';
+                    }
+                },
+                error: function () {
+                    badge.className = 'aga-validation-badge aga-validation-invalid aga-validation-visible';
+                    badge.innerHTML = '<span>\u2717</span> Not verified';
+                    badge.title = 'Validation request failed.';
+                }
             });
         },
 
+        getOrCreateValidationBadge: function (mainInput) {
+            var existing = mainInput.parentNode.querySelector('.aga-validation-badge');
+            if (existing) return existing;
+
+            var badge = document.createElement('span');
+            badge.className = 'aga-validation-badge';
+            mainInput.parentNode.insertBefore(badge, mainInput.nextSibling);
+            return badge;
+        },
+
         showMapPreview: function (mainInput, location, config) {
+            // Normalize location to plain {lat, lng} object
+            var normalizedLocation = {
+                lat: typeof location.lat === 'function' ? location.lat() : parseFloat(location.lat),
+                lng: typeof location.lng === 'function' ? location.lng() : parseFloat(location.lng)
+            };
+
             var containerId = 'aga-map-preview-' + (config.form_id || 'default');
             var existing = document.getElementById(containerId);
             if (existing) {
@@ -254,7 +619,7 @@
 
             google.maps.importLibrary('maps').then(function () {
                 var map = new google.maps.Map(mapDiv, {
-                    center: location,
+                    center: normalizedLocation,
                     zoom: 15,
                     disableDefaultUI: true,
                     zoomControl: true,
@@ -264,7 +629,7 @@
                 google.maps.importLibrary('marker').then(function () {
                     var marker = new google.maps.marker.AdvancedMarkerElement({
                         map: map,
-                        position: location,
+                        position: normalizedLocation,
                         gmpDraggable: true
                     });
 
@@ -300,6 +665,11 @@
                     if (config.mode === 'smart_mapping' && result.address_components) {
                         var components = aga.parseReverseComponents(result.address_components);
                         aga.applyParsedComponents(components, config);
+                    }
+
+                    // Re-validate after drag
+                    if (config.address_validation) {
+                        aga.validateAddress(mainInput, result.formatted_address || '', result.place_id || '');
                     }
                 } else {
                     // Geocoding API not enabled — just update coordinates
@@ -404,11 +774,11 @@
 
             if (config.mode === 'smart_mapping' && place.addressComponents) {
                 var components = aga.parseAddressComponents(place.addressComponents);
+                var countryCode = components.country_short || '';
 
                 // Set country FIRST — frameworks like WooCommerce re-render
                 // state/postcode fields when country changes.
                 if (config.selectors.country) {
-                    // Pass both short and long so smart matcher can find the right option.
                     var countryPrimary = (config.formats.country === 'short') ? components.country_short : components.country_long;
                     var countryAlt = (config.formats.country === 'short') ? components.country_long : components.country_short;
                     aga.setFieldValue(config.selectors.country, countryPrimary, countryAlt);
@@ -417,21 +787,21 @@
                 if (config.selectors.street) {
                     aga.setFieldValue(config.selectors.street, (components.street_number + ' ' + components.route).trim());
                 }
+
+                // Smart country-aware city mapping
                 if (config.selectors.city) {
-                    // Try locality first, then sublocality, then admin_area_level_2 for countries
-                    // that use districts (e.g. Bangladesh, India).
-                    aga.setFieldValue(config.selectors.city, components.locality || components.sublocality || components.administrative_area_level_2 || '');
+                    var smartCity = aga.getSmartCity(components, countryCode);
+                    aga.setFieldValue(config.selectors.city, smartCity);
                 }
 
-                // Delay state and postcode to allow framework re-render after country change.
-                var statePrimary = (config.formats.state === 'short') ? components.administrative_area_level_1_short : components.administrative_area_level_1_long;
-                var stateAlt = (config.formats.state === 'short') ? components.administrative_area_level_1_long : components.administrative_area_level_1_short;
+                // Smart country-aware state mapping
+                var smartState = aga.getSmartState(components, countryCode, config.formats.state);
                 var zipValue = components.postal_code;
 
+                // Delay state and postcode to allow framework re-render after country change.
                 setTimeout(function () {
                     if (config.selectors.state) {
-                        // Pass both short and long for smart select matching.
-                        aga.setFieldValue(config.selectors.state, statePrimary, stateAlt);
+                        aga.setFieldValue(config.selectors.state, smartState.primary, smartState.alt);
                     }
                     if (config.selectors.zip) {
                         aga.setFieldValue(config.selectors.zip, zipValue);
@@ -541,15 +911,384 @@
             return null;
         },
 
+        // ---- Saved Addresses (Pro) ----
+
+        /**
+         * Cached saved addresses per form to avoid repeated AJAX calls.
+         * Keyed by config.form_id.
+         */
+        _savedAddressesCache: {},
+
+        setupSavedAddresses: function (mainInput, dropdown, config, state) {
+            mainInput.addEventListener('focus', function () {
+                if (mainInput.value.trim() !== '') return;
+                if (state.isFetching) return;
+
+                var formId = config.form_id || 'default';
+
+                // If already cached, show immediately.
+                if (aga._savedAddressesCache[formId]) {
+                    aga.renderSavedAddresses(aga._savedAddressesCache[formId], dropdown, mainInput, config, state);
+                    return;
+                }
+
+                // Fetch from server (once per page load per form).
+                $.ajax({
+                    url: aga_frontend_data.ajax_url,
+                    type: 'POST',
+                    data: {
+                        action: 'aga_get_addresses',
+                        nonce: aga_frontend_data.nonce
+                    },
+                    success: function (response) {
+                        if (response.success && response.data && response.data.addresses && response.data.addresses.length) {
+                            aga._savedAddressesCache[formId] = response.data.addresses;
+                            // Only show if input is still focused and empty.
+                            if (document.activeElement === mainInput && mainInput.value.trim() === '') {
+                                aga.renderSavedAddresses(response.data.addresses, dropdown, mainInput, config, state);
+                            }
+                        }
+                    }
+                });
+            });
+        },
+
+        renderSavedAddresses: function (addresses, dropdown, mainInput, config, state) {
+            if (!addresses || !addresses.length) return;
+
+            dropdown.innerHTML = '';
+            state.activeIndex = -1;
+
+            // Header
+            var header = document.createElement('li');
+            header.className = 'aga-saved-header';
+            header.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Recent Addresses';
+            dropdown.appendChild(header);
+
+            addresses.forEach(function (entry, index) {
+                var li = document.createElement('li');
+                li.className = 'aga-autocomplete-item aga-saved-item';
+                li.textContent = entry.address;
+
+                li.addEventListener('mouseenter', function () {
+                    var items = dropdown.querySelectorAll('.aga-autocomplete-item');
+                    aga.highlightItem(items, index);
+                });
+
+                li.addEventListener('click', function () {
+                    state.isSelecting = true;
+                    mainInput.value = entry.address;
+                    mainInput.dispatchEvent(new Event('change', { bubbles: true }));
+
+                    // Build a place-like object from stored data.
+                    var location = null;
+                    if (entry.lat && entry.lng) {
+                        location = {
+                            lat: function () { return parseFloat(entry.lat); },
+                            lng: function () { return parseFloat(entry.lng); }
+                        };
+                    }
+
+                    var placeObj = {
+                        formattedAddress: entry.address,
+                        location: location,
+                        id: entry.place_id || '',
+                        addressComponents: entry.components || []
+                    };
+
+                    aga.applyMapping(placeObj, config);
+
+                    if (config.show_map_preview && location) {
+                        aga.showMapPreview(mainInput, location, config);
+                    }
+
+                    if (config.address_validation && entry.address) {
+                        aga.validateAddress(mainInput, entry.address, entry.place_id || '');
+                    }
+
+                    aga.hideDropdown(dropdown);
+                    setTimeout(function () { state.isSelecting = false; }, 100);
+                });
+
+                dropdown.appendChild(li);
+            });
+
+            // Divider
+            var divider = document.createElement('li');
+            divider.className = 'aga-saved-divider';
+            dropdown.appendChild(divider);
+
+            aga.positionDropdown(dropdown, mainInput);
+            dropdown.style.display = 'block';
+        },
+
+        saveAddress: function (address, location, placeId, addressComponents) {
+            if (!address || typeof aga_frontend_data === 'undefined') return;
+
+            var lat = 0, lng = 0;
+            if (location) {
+                lat = typeof location.lat === 'function' ? location.lat() : (location.lat || 0);
+                lng = typeof location.lng === 'function' ? location.lng() : (location.lng || 0);
+            }
+
+            // Normalize components to simple objects for storage.
+            var components = [];
+            if (addressComponents && addressComponents.length) {
+                components = addressComponents.map(function (c) {
+                    return {
+                        types: c.types || [],
+                        longText: c.longText || c.long_name || '',
+                        shortText: c.shortText || c.short_name || ''
+                    };
+                });
+            }
+
+            // Fire-and-forget AJAX.
+            $.ajax({
+                url: aga_frontend_data.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'aga_save_address',
+                    nonce: aga_frontend_data.nonce,
+                    address: address,
+                    lat: lat,
+                    lng: lng,
+                    place_id: placeId,
+                    components: components
+                }
+            });
+
+            // Invalidate cached addresses so the next focus fetches fresh data.
+            aga._savedAddressesCache = {};
+        },
+
+        // ---- End Saved Addresses ----
+
+        /**
+         * Country-aware mapping rules.
+         * Defines which Google address component types map to "city" and "state"
+         * for each country. Falls back to a sensible default chain.
+         *
+         * Each entry has:
+         *   city:  ordered array of component types to try for the "city" field
+         *   state: ordered array of component types to try for the "state" field
+         */
+        countryMappingRules: {
+            // Default fallback chain (used when country not in this list)
+            '_default': {
+                city:  ['locality', 'postal_town', 'sublocality_level_1', 'sublocality', 'administrative_area_level_2', 'administrative_area_level_3'],
+                state: ['administrative_area_level_1']
+            },
+            // Bangladesh — city=district (admin_level_2), state=division (admin_level_1)
+            'BD': {
+                city:  ['administrative_area_level_2', 'locality', 'sublocality_level_1'],
+                state: ['administrative_area_level_1']
+            },
+            // UK — city=postal_town, state=admin_level_2 (county)
+            'GB': {
+                city:  ['postal_town', 'locality', 'sublocality'],
+                state: ['administrative_area_level_2', 'administrative_area_level_1']
+            },
+            // Brazil — city=admin_level_2, state=admin_level_1
+            'BR': {
+                city:  ['administrative_area_level_2', 'locality'],
+                state: ['administrative_area_level_1']
+            },
+            // Japan — city=locality, state=admin_level_1 (prefecture)
+            'JP': {
+                city:  ['locality', 'sublocality_level_1', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // South Korea — similar to Japan
+            'KR': {
+                city:  ['locality', 'sublocality_level_1', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // India — city=locality, but fallback to admin_level_2 (district)
+            'IN': {
+                city:  ['locality', 'administrative_area_level_2', 'sublocality_level_1'],
+                state: ['administrative_area_level_1']
+            },
+            // China — city=locality or admin_level_2 (prefecture-level city)
+            'CN': {
+                city:  ['locality', 'administrative_area_level_2', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // UAE — city=locality, state=admin_level_1 (emirate)
+            'AE': {
+                city:  ['locality', 'sublocality_level_1', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Saudi Arabia
+            'SA': {
+                city:  ['locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Nigeria — city=locality, state=admin_level_1
+            'NG': {
+                city:  ['locality', 'administrative_area_level_2', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // Indonesia
+            'ID': {
+                city:  ['administrative_area_level_2', 'locality'],
+                state: ['administrative_area_level_1']
+            },
+            // Philippines
+            'PH': {
+                city:  ['locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Colombia
+            'CO': {
+                city:  ['locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Mexico
+            'MX': {
+                city:  ['locality', 'administrative_area_level_2', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // Pakistan — city=locality or admin_level_2 (district)
+            'PK': {
+                city:  ['locality', 'administrative_area_level_2', 'sublocality_level_1'],
+                state: ['administrative_area_level_1']
+            },
+            // Sri Lanka
+            'LK': {
+                city:  ['locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Nepal
+            'NP': {
+                city:  ['locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Thailand
+            'TH': {
+                city:  ['sublocality_level_1', 'locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Vietnam
+            'VN': {
+                city:  ['administrative_area_level_2', 'locality'],
+                state: ['administrative_area_level_1']
+            },
+            // Egypt
+            'EG': {
+                city:  ['locality', 'administrative_area_level_2'],
+                state: ['administrative_area_level_1']
+            },
+            // Turkey
+            'TR': {
+                city:  ['administrative_area_level_2', 'locality'],
+                state: ['administrative_area_level_1']
+            },
+            // Germany — city=locality, state=admin_level_1 (Bundesland)
+            'DE': {
+                city:  ['locality', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // France — city=locality, no states (use region)
+            'FR': {
+                city:  ['locality', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // Italy
+            'IT': {
+                city:  ['locality', 'administrative_area_level_3'],
+                state: ['administrative_area_level_2', 'administrative_area_level_1']
+            },
+            // Spain
+            'ES': {
+                city:  ['locality', 'administrative_area_level_4', 'administrative_area_level_3'],
+                state: ['administrative_area_level_2', 'administrative_area_level_1']
+            },
+            // Netherlands
+            'NL': {
+                city:  ['locality', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // Australia
+            'AU': {
+                city:  ['locality', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // Canada
+            'CA': {
+                city:  ['locality', 'sublocality'],
+                state: ['administrative_area_level_1']
+            },
+            // US
+            'US': {
+                city:  ['locality', 'sublocality', 'administrative_area_level_3'],
+                state: ['administrative_area_level_1']
+            }
+        },
+
+        /**
+         * Get the smart city value based on country-aware rules.
+         */
+        getSmartCity: function (parsed, countryCode) {
+            var rules = aga.countryMappingRules[countryCode] || aga.countryMappingRules['_default'];
+            for (var i = 0; i < rules.city.length; i++) {
+                var key = rules.city[i];
+                // Map the component type to parsed keys
+                var val = aga._getParsedValue(parsed, key, 'long');
+                if (val) return val;
+            }
+            return '';
+        },
+
+        /**
+         * Get the smart state value based on country-aware rules.
+         */
+        getSmartState: function (parsed, countryCode, format) {
+            var rules = aga.countryMappingRules[countryCode] || aga.countryMappingRules['_default'];
+            var suffix = (format === 'short') ? 'short' : 'long';
+            var altSuffix = (format === 'short') ? 'long' : 'short';
+
+            for (var i = 0; i < rules.state.length; i++) {
+                var key = rules.state[i];
+                var val = aga._getParsedValue(parsed, key, suffix);
+                if (val) return { primary: val, alt: aga._getParsedValue(parsed, key, altSuffix) || val };
+            }
+            return { primary: '', alt: '' };
+        },
+
+        /**
+         * Get a parsed value by component type and format.
+         */
+        _getParsedValue: function (parsed, componentType, format) {
+            // Map component types to parsed object keys
+            var map = {
+                'locality':                       { long: 'locality',                          short: 'locality' },
+                'postal_town':                    { long: 'postal_town',                       short: 'postal_town' },
+                'sublocality':                    { long: 'sublocality',                        short: 'sublocality' },
+                'sublocality_level_1':            { long: 'sublocality',                        short: 'sublocality' },
+                'administrative_area_level_1':    { long: 'administrative_area_level_1_long',   short: 'administrative_area_level_1_short' },
+                'administrative_area_level_2':    { long: 'administrative_area_level_2_long',   short: 'administrative_area_level_2_short' },
+                'administrative_area_level_3':    { long: 'administrative_area_level_3',        short: 'administrative_area_level_3' },
+                'administrative_area_level_4':    { long: 'administrative_area_level_4',        short: 'administrative_area_level_4' }
+            };
+            var entry = map[componentType];
+            if (!entry) return '';
+            return parsed[entry[format]] || '';
+        },
+
         parseAddressComponents: function (components) {
             var parsed = {
                 street_number: '',
                 route: '',
                 locality: '',
+                postal_town: '',
                 sublocality: '',
                 administrative_area_level_1_long: '',
                 administrative_area_level_1_short: '',
-                administrative_area_level_2: '',
+                administrative_area_level_2_long: '',
+                administrative_area_level_2_short: '',
+                administrative_area_level_3: '',
+                administrative_area_level_4: '',
                 country_long: '',
                 country_short: '',
                 postal_code: ''
@@ -567,18 +1306,26 @@
                         case 'locality':
                             parsed.locality = component.longText || component.long_name || '';
                             break;
+                        case 'postal_town':
+                            parsed.postal_town = component.longText || component.long_name || '';
+                            break;
                         case 'sublocality_level_1':
                         case 'sublocality':
-                            if (!parsed.locality) {
-                                parsed.sublocality = component.longText || component.long_name || '';
-                            }
+                            parsed.sublocality = component.longText || component.long_name || '';
                             break;
                         case 'administrative_area_level_1':
                             parsed.administrative_area_level_1_long = component.longText || component.long_name || '';
                             parsed.administrative_area_level_1_short = component.shortText || component.short_name || '';
                             break;
                         case 'administrative_area_level_2':
-                            parsed.administrative_area_level_2 = component.longText || component.long_name || '';
+                            parsed.administrative_area_level_2_long = component.longText || component.long_name || '';
+                            parsed.administrative_area_level_2_short = component.shortText || component.short_name || '';
+                            break;
+                        case 'administrative_area_level_3':
+                            parsed.administrative_area_level_3 = component.longText || component.long_name || '';
+                            break;
+                        case 'administrative_area_level_4':
+                            parsed.administrative_area_level_4 = component.longText || component.long_name || '';
                             break;
                         case 'country':
                             parsed.country_long = component.longText || component.long_name || '';
@@ -594,7 +1341,44 @@
         }
     };
 
+    // Scan for data-aga-config attributes on inputs and script tags
+    // (used by Elementor form fields and widgets) and merge into aga_form_configs.
+    function scanDataConfigs() {
+        var elements = document.querySelectorAll('[data-aga-config]');
+        if (!elements.length) return;
+        window.aga_form_configs = window.aga_form_configs || [];
+        elements.forEach(function (el) {
+            try {
+                var cfg = JSON.parse(el.getAttribute('data-aga-config'));
+                var exists = window.aga_form_configs.some(function (c) {
+                    return c.form_id === cfg.form_id;
+                });
+                if (!exists) {
+                    window.aga_form_configs.push(cfg);
+                }
+            } catch (e) {}
+        });
+    }
+
+    // Expose a global reinit function for dynamic content (e.g. WooCommerce checkout).
+    // This safely re-runs setup on all configs, skipping already-initialized inputs.
+    window.aga_reinit = function () {
+        scanDataConfigs();
+        if (typeof window.aga_form_configs !== 'undefined' && aga._apiReady) {
+            aga.run();
+        }
+    };
+
+    // Track whether the Google Maps API is ready.
+    aga._apiReady = false;
+    var _originalRun = aga.run;
+    aga.run = function () {
+        aga._apiReady = true;
+        _originalRun.call(aga);
+    };
+
     $(function () {
+        scanDataConfigs();
         aga.init();
     });
 

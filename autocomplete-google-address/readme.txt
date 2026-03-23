@@ -3,7 +3,7 @@ Contributors: nishatbd31, freemius
 Tags: google, maps, places, autocomplete, address, form, woocommerce, contact form 7, wpforms, gravity forms, elementor, checkout, address autocomplete
 Requires at least: 5.4
 Tested up to: 6.9
-Stable tag: 5.0.0
+Stable tag: 5.1.0
 Requires PHP: 7.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -37,8 +37,12 @@ Our **Setup Wizard** guides you through the entire process. No documentation nee
 * **Lightweight** — No bloat, no extra CSS frameworks, no jQuery UI dependencies
 * **Conflict Prevention** — Option to skip Google Maps API loading if another plugin already loads it
 * **Global or Per-Page Activation** — Control exactly where autocomplete appears
-* **Developer Friendly** — Shortcode `[aga_form id="123"]` and PHP function `aga_render_form_config(123)`
-* **Works in Every Country** — International address support with smart field matching
+* **Shortcode Support** — Use `[aga_autocomplete]` to add autocomplete anywhere
+* **Config Duplicate** — One-click duplicate existing form configurations
+* **Import/Export** — Export all configs as JSON, import on another site
+* **Diagnostic Health Check** — Auto-check API keys, enabled APIs, system info
+* **Conflict Detection** — Warns when other plugins load Google Maps API
+* **Works in Every Country** — International address support with smart country-aware mapping
 
 = Pro Features =
 
@@ -51,7 +55,19 @@ Our **Setup Wizard** guides you through the entire process. No documentation nee
 * **Per-Page Activation** — Load autocomplete only on specific pages
 * **Smart Select Matching** — Automatically matches state/district/province names to WooCommerce dropdown values for every country (US states, Bangladesh districts, Indian states, UK counties, etc.)
 * **React-Compatible** — Works perfectly with WooCommerce Block Checkout and other React-based forms
-* **Priority Support** — Direct support from the developer
+* **Address Validation** — Verify addresses with green/yellow/red badges using Google Address Validation API
+* **Geolocation Auto-Detect** — "Use My Location" GPS button on the address input
+* **Saved Addresses** — Show recently used addresses for logged-in users (up to 5 per user)
+* **Usage Analytics Dashboard** — Track searches, selections, conversion rate, top countries/cities
+* **Place Type Filter** — Restrict results to addresses, cities, businesses, or regions
+* **Custom Dropdown Styling** — Customize dropdown colors, fonts, border radius from admin
+* **Elementor Widget** — Native drag-and-drop widget for Elementor page builder
+* **Elementor Form Field** — Address Autocomplete field type for Elementor Pro Forms with smart mapping sub-fields
+* **Country Restriction Dropdown** — Select2 multi-select with all countries (max 5)
+* **Language Selector** — Select2 dropdown with 80+ languages
+* **Smart Country-Aware Mapping** — Automatically maps city/state correctly for 30+ countries (Bangladesh districts, UK postal towns, Brazil admin areas, etc.)
+* **Zero-Config WooCommerce** — Auto-detects classic vs block checkout, re-initializes on AJAX updates
+* **Priority Support** — Direct WhatsApp support from the developer
 
 = Works With =
 
@@ -204,6 +220,37 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 
 == Changelog ==
 
+= 5.1.0 =
+* NEW: Address Validation with verified/warning/invalid badges (Pro).
+* NEW: Geolocation "Use My Location" GPS button (Pro).
+* NEW: Saved Addresses — show last 5 used addresses for logged-in users (Pro).
+* NEW: Usage Analytics Dashboard — track searches, selections, top cities/countries (Pro).
+* NEW: Place Type Filter — restrict to addresses, cities, businesses, regions (Pro).
+* NEW: Custom dropdown CSS styling from Appearance settings tab (Pro).
+* NEW: Native Elementor Widget — drag-and-drop address autocomplete widget.
+* NEW: Elementor Pro Form Field — Address Autocomplete field type with smart mapping sub-fields and layout control.
+* NEW: Shortcode `[aga_autocomplete]` — add autocomplete to any page/post.
+* NEW: Form Config Duplicate — one-click duplicate button on configs list.
+* NEW: Import/Export — JSON export/import for all form configurations.
+* NEW: Diagnostic Health Check page — auto-tests API keys, enabled APIs, system info.
+* NEW: Conflict Detection — warns when other plugins load Google Maps API.
+* NEW: WhatsApp Chat Widget — 24/7 support button on all plugin admin pages.
+* NEW: Review Request Banner — non-intrusive prompt after 14 days of use.
+* NEW: Free-to-Pro Upgrade Banner — feature showcase after 7 days for free users.
+* NEW: Smart Country-Aware Address Mapping — correct city/state mapping for 30+ countries.
+* NEW: Country Restriction Select2 multi-select dropdown with all countries (max 5).
+* NEW: Language Select2 dropdown with 80+ languages.
+* NEW: Live Preview — test autocomplete from the form config admin page.
+* IMPROVED: Zero-Config WooCommerce — auto-detects classic vs block checkout.
+* IMPROVED: WooCommerce re-initialization on AJAX checkout updates and shipping toggle.
+* IMPROVED: Modern admin UI with design tokens, unified component library.
+* IMPROVED: All inline styles extracted to admin.css.
+* IMPROVED: Saved addresses trigger map preview and reverse geocode.
+* IMPROVED: Country restriction now properly supports multiple countries as array.
+* FIXED: Masked API key (bullet characters) being saved to database.
+* FIXED: Dropdown reappearing after address selection.
+* FIXED: Geolocation shows friendly error on non-HTTPS sites.
+
 = 5.0.0 =
 * Major update: Single plugin architecture — no separate Pro download needed.
 * Migrated to new Google Places API (programmatic approach, no style overrides).
@@ -223,6 +270,9 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 * Initial release.
 
 == Upgrade Notice ==
+
+= 5.1.0 =
+Massive feature update: Address Validation, Geolocation, Saved Addresses, Analytics Dashboard, Elementor Widget, Shortcode support, 30+ country smart mapping, modern admin UI, and much more. Upgrade recommended.
 
 = 5.0.0 =
 Major update: New Google API, setup wizard, WooCommerce auto-integration, form presets, and single-plugin Pro architecture. Upgrade recommended for all users.

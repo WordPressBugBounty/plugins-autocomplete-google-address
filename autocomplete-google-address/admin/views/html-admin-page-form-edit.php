@@ -18,10 +18,14 @@ $mode              = get_post_meta( $post->ID, 'Nish_aga_mode', true ) ?: 'singl
 $activate_globally = metadata_exists( 'post', $post->ID, 'Nish_aga_activate_globally' ) ? get_post_meta( $post->ID, 'Nish_aga_activate_globally', true ) : '1';
 $main_selector     = get_post_meta( $post->ID, 'Nish_aga_main_selector', true );
 $country_restriction = get_post_meta( $post->ID, 'Nish_aga_country_restriction', true );
+$place_types         = get_post_meta( $post->ID, 'Nish_aga_place_types', true );
 $language_override = get_post_meta( $post->ID, 'Nish_aga_language_override', true );
 $form_preset       = get_post_meta( $post->ID, 'Nish_aga_form_preset', true );
 $show_map_preview  = get_post_meta( $post->ID, 'Nish_aga_show_map_preview', true );
 $map_container_sel = get_post_meta( $post->ID, 'Nish_aga_map_container_selector', true );
+$address_validation = get_post_meta( $post->ID, 'Nish_aga_address_validation', true );
+$geolocation       = get_post_meta( $post->ID, 'Nish_aga_geolocation', true );
+$saved_addresses   = get_post_meta( $post->ID, 'Nish_aga_saved_addresses', true );
 
 // Single Line
 $lat_selector      = get_post_meta( $post->ID, 'Nish_aga_lat_selector', true );
@@ -67,8 +71,8 @@ function aga_pro_label( $checkout_url, $is_paying ) {
 	<?php if ( $is_paying && ! empty( $preset_options ) ) : ?>
 	<div class="aga-preset-selector">
 		<label for="aga_form_preset"><?php esc_html_e( 'Quick Setup: Form Plugin Preset', 'autocomplete-google-address' ); ?></label>
-		<div style="display: flex; gap: 10px; align-items: center;">
-			<select id="aga_form_preset" name="Nish_aga_form_preset" style="flex: 1;">
+		<div class="aga-flex-row">
+			<select id="aga_form_preset" name="Nish_aga_form_preset" class="aga-flex-1">
 				<?php foreach ( $preset_options as $key => $label ) : ?>
 					<option value="<?php echo esc_attr( $key ); ?>" <?php selected( $form_preset, $key ); ?>><?php echo esc_html( $label ); ?></option>
 				<?php endforeach; ?>
@@ -90,12 +94,12 @@ function aga_pro_label( $checkout_url, $is_paying ) {
 	<div class="aga-config-columns">
 		<!-- Left Column -->
 		<div class="aga-config-col">
-			<div class="aga-box">
-				<div class="aga-box-header">
+			<div class="aga-card">
+				<div class="aga-card-header">
 					<span class="dashicons dashicons-admin-settings"></span>
 					<h2><?php esc_html_e( 'Core Setup', 'autocomplete-google-address' ); ?></h2>
 				</div>
-				<div class="aga-box-body">
+				<div class="aga-card-body">
 					<div class="aga-field-group">
 						<label for="aga_main_selector"><?php esc_html_e( 'Trigger Field Selector', 'autocomplete-google-address' ); ?>
 							<span class="aga-tooltip"><span class="dashicons dashicons-editor-help"></span>
@@ -107,75 +111,113 @@ function aga_pro_label( $checkout_url, $is_paying ) {
 							<code>#billing_address</code> <code>.address-field</code> <code>[name="address"]</code>
 						</p>
 					</div>
-					<hr/>
-					<div class="aga-field-group">
-						<label><?php esc_html_e( 'Country Restriction', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
-						<input type="text" id="aga_country_restriction" name="Nish_aga_country_restriction" value="<?php echo esc_attr( $country_restriction ); ?>" class="widefat" placeholder="e.g., US, CA (Leave blank for all)" <?php echo ! $is_paying ? 'disabled' : ''; ?> />
-						<p class="description"><?php esc_html_e( 'Enter country codes separated by commas to restrict results. Supports multiple countries.', 'autocomplete-google-address' ); ?></p>
+					</div>
+			</div>
+			<div class="aga-card">
+				<div class="aga-card-header">
+					<span class="dashicons dashicons-filter"></span>
+					<h2><?php esc_html_e( 'Filters & Locale', 'autocomplete-google-address' ); ?></h2>
+				</div>
+				<div class="aga-card-body">
+					<div class="aga-mapping-grid">
+						<div class="aga-field-group">
+							<label><?php esc_html_e( 'Country Restriction', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
+							<?php
+							$countries = aga_get_countries();
+							$selected_countries = array_filter( array_map( 'trim', explode( ',', $country_restriction ) ) );
+							?>
+							<select id="aga_country_restriction" name="Nish_aga_country_restriction[]" class="widefat aga-select2-countries" multiple="multiple" data-placeholder="<?php esc_attr_e( 'Select countries (max 5)...', 'autocomplete-google-address' ); ?>" <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<?php foreach ( $countries as $code => $name ) : ?>
+									<option value="<?php echo esc_attr( $code ); ?>" <?php echo in_array( $code, $selected_countries, true ) ? 'selected' : ''; ?>><?php echo esc_html( $name . ' (' . $code . ')' ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
+						<div class="aga-field-group">
+							<label><?php esc_html_e( 'Place Types', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
+							<select name="Nish_aga_place_types" class="widefat" <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<option value="" <?php selected( $place_types, '' ); ?>><?php esc_html_e( 'All Types', 'autocomplete-google-address' ); ?></option>
+								<option value="address" <?php selected( $place_types, 'address' ); ?>><?php esc_html_e( 'Addresses only', 'autocomplete-google-address' ); ?></option>
+								<option value="geocode" <?php selected( $place_types, 'geocode' ); ?>><?php esc_html_e( 'Geocoded', 'autocomplete-google-address' ); ?></option>
+								<option value="establishment" <?php selected( $place_types, 'establishment' ); ?>><?php esc_html_e( 'Businesses', 'autocomplete-google-address' ); ?></option>
+								<option value="(regions)" <?php selected( $place_types, '(regions)' ); ?>><?php esc_html_e( 'Regions', 'autocomplete-google-address' ); ?></option>
+								<option value="(cities)" <?php selected( $place_types, '(cities)' ); ?>><?php esc_html_e( 'Cities', 'autocomplete-google-address' ); ?></option>
+							</select>
+						</div>
 					</div>
 					<hr/>
-					<div class="aga-field-group">
-						<label><?php esc_html_e( 'Language', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
-						<input type="text" name="Nish_aga_language_override" value="<?php echo esc_attr( $language_override ); ?>" class="widefat" placeholder="e.g., en, fr" <?php echo ! $is_paying ? 'disabled' : ''; ?> />
-						<p class="description"><?php esc_html_e( 'Language code for results. Defaults to site language.', 'autocomplete-google-address' ); ?></p>
-					</div>
-					<hr/>
-					<div class="aga-field-group">
-						<label><?php esc_html_e( 'Map Preview', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?>
-							<span class="aga-tooltip"><span class="dashicons dashicons-editor-help"></span>
-								<span class="aga-tooltip-text"><?php esc_html_e( 'Shows a small Google Map with a pin after the user selects an address.', 'autocomplete-google-address' ); ?></span>
-							</span>
-						</label>
-						<label class="aga-switch">
-							<input type="checkbox" name="Nish_aga_show_map_preview" value="1" <?php checked( $show_map_preview, '1' ); ?> <?php echo ! $is_paying ? 'disabled' : ''; ?>>
-							<span class="aga-slider"></span>
-						</label>
-						<span style="vertical-align: middle; margin-left: 8px;"><?php esc_html_e( 'Show map after selection', 'autocomplete-google-address' ); ?></span>
+					<div class="aga-mapping-grid">
+						<div class="aga-field-group">
+							<label><?php esc_html_e( 'Language', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
+							<?php $languages = aga_get_languages(); ?>
+							<select name="Nish_aga_language_override" class="widefat aga-select2-language" data-placeholder="<?php esc_attr_e( 'Select language...', 'autocomplete-google-address' ); ?>" <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<option value=""><?php esc_html_e( 'Default (site language)', 'autocomplete-google-address' ); ?></option>
+								<?php foreach ( $languages as $code => $name ) : ?>
+									<option value="<?php echo esc_attr( $code ); ?>" <?php selected( $language_override, $code ); ?>><?php echo esc_html( $name . ' (' . $code . ')' ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</div>
 						<?php if ( $is_paying ) : ?>
-						<div style="margin-top: 10px;">
-							<input type="text" name="Nish_aga_map_container_selector" value="<?php echo esc_attr( $map_container_sel ); ?>" class="widefat" placeholder="<?php esc_attr_e( 'Map container selector (optional, defaults to below input)', 'autocomplete-google-address' ); ?>" />
+						<div class="aga-field-group">
+							<label><?php esc_html_e( 'Map Container', 'autocomplete-google-address' ); ?></label>
+							<input type="text" name="Nish_aga_map_container_selector" value="<?php echo esc_attr( $map_container_sel ); ?>" class="widefat" placeholder="<?php esc_attr_e( 'Optional — auto below input', 'autocomplete-google-address' ); ?>" />
 						</div>
 						<?php endif; ?>
 					</div>
 				</div>
 			</div>
-			<div class="aga-box">
-				<div class="aga-box-header">
-					<span class="dashicons dashicons-controls-play"></span>
+			<div class="aga-card">
+				<div class="aga-card-header">
+					<span class="dashicons dashicons-admin-site-alt3"></span>
 					<h2><?php esc_html_e( 'Activation', 'autocomplete-google-address' ); ?></h2>
 				</div>
-				<div class="aga-box-body">
+				<div class="aga-card-body">
 					<div class="aga-field-group">
-						<label for="Nish_aga_load_on_pages"><?php esc_html_e( 'Load on Specific Pages', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
-						<select id="Nish_aga_load_on_pages" name="Nish_aga_load_on_pages[]" multiple="multiple" class="widefat select2" <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+						<label for="Nish_aga_activate_globally"><?php esc_html_e( 'Global Activation', 'autocomplete-google-address' ); ?></label>
+						<label class="aga-switch">
+							<input type="checkbox" id="Nish_aga_activate_globally" name="Nish_aga_activate_globally" value="1" <?php checked( $activate_globally, '1' ); ?>>
+							<span class="aga-slider"></span>
+						</label>
+						<span class="aga-switch-label"><?php esc_html_e( 'Activate on all pages', 'autocomplete-google-address' ); ?></span>
+					</div>
+					<hr/>
+					<div class="aga-field-group">
+						<label for="Nish_aga_load_on_pages"><?php esc_html_e( 'Or Specific Pages', 'autocomplete-google-address' ); ?><?php echo aga_pro_label( $checkout_url, $is_paying ); ?></label>
+						<select id="Nish_aga_load_on_pages" name="Nish_aga_load_on_pages[]" multiple="multiple" class="widefat select2" data-placeholder="<?php esc_attr_e( 'Search pages...', 'autocomplete-google-address' ); ?>" <?php echo ! $is_paying ? 'disabled' : ''; ?>>
 							<?php foreach ( $all_pages as $page ) : ?>
 								<option value="<?php echo esc_attr( $page->ID ); ?>" <?php selected( in_array( $page->ID, $selected_pages, true ) ); ?>>
 									<?php echo esc_html( $page->post_title ); ?>
 								</option>
 							<?php endforeach; ?>
 						</select>
-						<p class="description"><?php esc_html_e( 'Select pages where this should be active. Leave blank if using Global Activation.', 'autocomplete-google-address' ); ?></p>
 					</div>
-					<hr/>
-					<div class="aga-field-group">
-						<label for="Nish_aga_activate_globally" style="display: inline-block; vertical-align: middle; margin-right: 10px;"><?php esc_html_e( 'Global Activation', 'autocomplete-google-address' ); ?></label>
-						<label class="aga-switch">
-							<input type="checkbox" id="Nish_aga_activate_globally" name="Nish_aga_activate_globally" value="1" <?php checked( $activate_globally, '1' ); ?>>
-							<span class="aga-slider"></span>
-						</label>
-						<p class="description"><?php esc_html_e( 'Activate on all pages. Recommended for checkout pages.', 'autocomplete-google-address' ); ?></p>
+				</div>
+			</div>
+			<div class="aga-card">
+				<div class="aga-card-header">
+					<span class="dashicons dashicons-visibility"></span>
+					<h2><?php esc_html_e( 'Live Preview', 'autocomplete-google-address' ); ?></h2>
+				</div>
+				<div class="aga-card-body">
+					<p class="description"><?php esc_html_e( 'Test your autocomplete setup:', 'autocomplete-google-address' ); ?></p>
+					<div id="aga-live-preview-container">
+						<input type="text" id="aga-live-preview-input" class="widefat" placeholder="<?php esc_attr_e( 'Start typing an address...', 'autocomplete-google-address' ); ?>" autocomplete="off" />
+					</div>
+					<div id="aga-preview-result" class="aga-mt-sm" style="display: none;">
+						<table class="widefat striped" id="aga-preview-result-table">
+							<tbody></tbody>
+						</table>
 					</div>
 				</div>
 			</div>
 		</div>
 		<!-- Right Column -->
 		<div class="aga-config-col">
-			<div class="aga-box">
-				<div class="aga-box-header">
+			<div class="aga-card">
+				<div class="aga-card-header">
 					<span class="dashicons dashicons-forms"></span>
 					<h2><?php esc_html_e( 'Mapping Mode', 'autocomplete-google-address' ); ?></h2>
 				</div>
-				<div class="aga-box-body">
+				<div class="aga-card-body">
 					<div class="aga-field-group">
 						<div class="aga-mode-selector">
 							<input type="radio" id="mode_single_line" name="Nish_aga_mode" value="single_line" <?php checked( $mode, 'single_line' ); ?>>
@@ -251,6 +293,62 @@ function aga_pro_label( $checkout_url, $is_paying ) {
 					</div>
 				</div>
 			</div>
+			<div class="aga-card">
+				<div class="aga-card-header">
+					<span class="dashicons dashicons-shield"></span>
+					<h2><?php esc_html_e( 'Pro Features', 'autocomplete-google-address' ); ?></h2>
+				</div>
+				<div class="aga-card-body">
+					<div class="aga-toggle-grid aga-toggle-grid--vertical">
+						<div class="aga-toggle-row">
+							<div class="aga-toggle-row-info">
+								<strong><?php esc_html_e( 'Address Validation', 'autocomplete-google-address' ); ?></strong>
+								<span class="aga-toggle-desc"><?php esc_html_e( 'Verify with badge', 'autocomplete-google-address' ); ?></span>
+							</div>
+							<label class="aga-switch">
+								<input type="checkbox" name="Nish_aga_address_validation" value="1" <?php checked( $address_validation, '1' ); ?> <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<span class="aga-slider"></span>
+							</label>
+						</div>
+						<div class="aga-toggle-row">
+							<div class="aga-toggle-row-info">
+								<strong><?php esc_html_e( 'Geolocation', 'autocomplete-google-address' ); ?></strong>
+								<span class="aga-toggle-desc"><?php esc_html_e( 'GPS auto-fill button', 'autocomplete-google-address' ); ?></span>
+							</div>
+							<label class="aga-switch">
+								<input type="checkbox" name="Nish_aga_geolocation" value="1" <?php checked( $geolocation, '1' ); ?> <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<span class="aga-slider"></span>
+							</label>
+						</div>
+						<div class="aga-toggle-row">
+							<div class="aga-toggle-row-info">
+								<strong><?php esc_html_e( 'Saved Addresses', 'autocomplete-google-address' ); ?></strong>
+								<span class="aga-toggle-desc"><?php esc_html_e( 'Recent addresses for users', 'autocomplete-google-address' ); ?></span>
+							</div>
+							<label class="aga-switch">
+								<input type="checkbox" name="Nish_aga_saved_addresses" value="1" <?php checked( $saved_addresses, '1' ); ?> <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<span class="aga-slider"></span>
+							</label>
+						</div>
+						<div class="aga-toggle-row">
+							<div class="aga-toggle-row-info">
+								<strong><?php esc_html_e( 'Map Preview', 'autocomplete-google-address' ); ?></strong>
+								<span class="aga-toggle-desc"><?php esc_html_e( 'Show map after selection', 'autocomplete-google-address' ); ?></span>
+							</div>
+							<label class="aga-switch">
+								<input type="checkbox" name="Nish_aga_show_map_preview" value="1" <?php checked( $show_map_preview, '1' ); ?> <?php echo ! $is_paying ? 'disabled' : ''; ?>>
+								<span class="aga-slider"></span>
+							</label>
+						</div>
+					</div>
+					<?php if ( ! $is_paying ) : ?>
+					<div class="aga-mt-sm">
+						<a href="<?php echo esc_url( $checkout_url ); ?>" target="_blank" class="button button-primary"><?php esc_html_e( 'Upgrade to Pro', 'autocomplete-google-address' ); ?></a>
+					</div>
+					<?php endif; ?>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>
+

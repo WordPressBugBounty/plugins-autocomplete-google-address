@@ -123,7 +123,6 @@ public function add_custom_add_new_menu() {
             'Nish_aga_mode',
             'Nish_aga_main_selector',
             'Nish_aga_language_override',
-            'Nish_aga_country_restriction',
             'Nish_aga_lat_selector',
             'Nish_aga_lng_selector',
             'Nish_aga_place_id_selector',
@@ -137,9 +136,19 @@ public function add_custom_add_new_menu() {
             'Nish_aga_smart_place_id_selector',
             'Nish_aga_state_format',
             'Nish_aga_country_format',
+            'Nish_aga_place_types',
             'Nish_aga_form_preset',
             'Nish_aga_map_container_selector',
         );
+
+        // Country restriction — multi-select array to comma-separated string.
+        if ( isset( $_POST['Nish_aga_country_restriction'] ) && is_array( $_POST['Nish_aga_country_restriction'] ) ) {
+            $countries = array_map( 'sanitize_text_field', $_POST['Nish_aga_country_restriction'] );
+            $countries = array_slice( $countries, 0, 5 );
+            update_post_meta( $post_id, 'Nish_aga_country_restriction', implode( ',', $countries ) );
+        } else {
+            update_post_meta( $post_id, 'Nish_aga_country_restriction', '' );
+        }
 
         foreach ( $fields as $field ) {
             if ( isset( $_POST[ $field ] ) ) {
@@ -166,6 +175,24 @@ public function add_custom_add_new_menu() {
             isset( $_POST['Nish_aga_show_map_preview'] ) ? '1' : ''
         );
 
+        update_post_meta(
+            $post_id,
+            'Nish_aga_address_validation',
+            isset( $_POST['Nish_aga_address_validation'] ) ? '1' : ''
+        );
+
+        update_post_meta(
+            $post_id,
+            'Nish_aga_geolocation',
+            isset( $_POST['Nish_aga_geolocation'] ) ? '1' : ''
+        );
+
+        update_post_meta(
+            $post_id,
+            'Nish_aga_saved_addresses',
+            isset( $_POST['Nish_aga_saved_addresses'] ) ? '1' : ''
+        );
+
         if ( isset( $_POST['Nish_aga_load_on_pages'] ) && is_array( $_POST['Nish_aga_load_on_pages'] ) ) {
             update_post_meta(
                 $post_id,
@@ -175,6 +202,69 @@ public function add_custom_add_new_menu() {
         } else {
             delete_post_meta( $post_id, 'Nish_aga_load_on_pages' );
         }
+    }
+
+    /**
+     * Add "Duplicate" link to row actions for aga_form posts.
+     */
+    public function add_duplicate_row_action( $actions, $post ) {
+        if ( $post->post_type === $this->post_type && current_user_can( 'edit_posts' ) ) {
+            $url = wp_nonce_url(
+                admin_url( 'admin.php?action=aga_duplicate_form&post=' . $post->ID ),
+                'aga_duplicate_form_' . $post->ID
+            );
+            $actions['duplicate'] = '<a href="' . esc_url( $url ) . '" title="' . esc_attr__( 'Duplicate this form config' ) . '">Duplicate</a>';
+        }
+        return $actions;
+    }
+
+    /**
+     * Handle the duplicate form action.
+     */
+    public function handle_duplicate_form() {
+        if ( ! isset( $_GET['post'] ) || ! isset( $_GET['_wpnonce'] ) ) {
+            wp_die( 'Missing parameters.' );
+        }
+
+        $post_id = absint( $_GET['post'] );
+
+        if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'aga_duplicate_form_' . $post_id ) ) {
+            wp_die( 'Security check failed.' );
+        }
+
+        if ( ! current_user_can( 'edit_posts' ) ) {
+            wp_die( 'You do not have permission to do this.' );
+        }
+
+        $original = get_post( $post_id );
+
+        if ( ! $original || $original->post_type !== $this->post_type ) {
+            wp_die( 'Original form config not found.' );
+        }
+
+        $new_post_id = wp_insert_post( array(
+            'post_title'  => $original->post_title . ' (Copy)',
+            'post_content' => $original->post_content,
+            'post_status' => 'draft',
+            'post_type'   => $this->post_type,
+        ) );
+
+        if ( is_wp_error( $new_post_id ) ) {
+            wp_die( 'Could not duplicate the form config.' );
+        }
+
+        // Copy all meta keys starting with Nish_aga_
+        $all_meta = get_post_meta( $post_id );
+        foreach ( $all_meta as $meta_key => $meta_values ) {
+            if ( strpos( $meta_key, 'Nish_aga_' ) === 0 ) {
+                foreach ( $meta_values as $meta_value ) {
+                    update_post_meta( $new_post_id, $meta_key, maybe_unserialize( $meta_value ) );
+                }
+            }
+        }
+
+        wp_redirect( admin_url( 'post.php?action=edit&post=' . $new_post_id . '&aga_duplicated=1' ) );
+        exit;
     }
 
     /**

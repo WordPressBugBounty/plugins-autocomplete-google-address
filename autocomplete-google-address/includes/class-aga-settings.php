@@ -57,26 +57,51 @@ class AGA_Settings {
      * @return array
      */
     public function sanitize( $input ) {
-        $new_input = array();
         $options = get_option( 'Nish_aga_settings', array() );
+        if ( ! is_array( $options ) ) {
+            $options = array();
+        }
+
+        // Start with existing options to preserve settings from other tabs.
+        $new_input = $options;
+
+        // API Key — only update if a new non-empty key is provided.
         if ( isset( $input['api_key'] ) ) {
             $new_api_key = sanitize_text_field( $input['api_key'] );
             if ( ! empty( $new_api_key ) ) {
                 $new_input['api_key'] = $new_api_key;
-            } else if ( ! empty( $options['api_key'] ) ) {
-                $new_input['api_key'] = $options['api_key'];
             }
+            // If empty, keep existing key (already in $new_input from $options).
         }
 
+        // Checkbox/toggle fields — update if present in input.
         if ( isset( $input['do_not_load_gmaps_api'] ) ) {
             $new_input['do_not_load_gmaps_api'] = absint( $input['do_not_load_gmaps_api'] );
-        } else {
+        } elseif ( array_key_exists( 'do_not_load_gmaps_api', $input ) ) {
             $new_input['do_not_load_gmaps_api'] = 0;
         }
 
-        // WooCommerce settings
-        $new_input['woocommerce_enabled'] = isset( $input['woocommerce_enabled'] ) ? absint( $input['woocommerce_enabled'] ) : 0;
-        $new_input['woocommerce_block_checkout'] = isset( $input['woocommerce_block_checkout'] ) ? absint( $input['woocommerce_block_checkout'] ) : 0;
+        // WooCommerce settings.
+        if ( array_key_exists( 'woocommerce_enabled', $input ) ) {
+            $new_input['woocommerce_enabled'] = isset( $input['woocommerce_enabled'] ) ? absint( $input['woocommerce_enabled'] ) : 0;
+        }
+        if ( array_key_exists( 'woocommerce_block_checkout', $input ) ) {
+            $new_input['woocommerce_block_checkout'] = isset( $input['woocommerce_block_checkout'] ) ? absint( $input['woocommerce_block_checkout'] ) : 0;
+        }
+
+        // Appearance settings.
+        $appearance_keys = array(
+            'dropdown_bg_color', 'dropdown_text_color', 'dropdown_hover_color',
+            'dropdown_border_color', 'dropdown_border_radius', 'dropdown_font_size',
+            'dropdown_max_height',
+            'attribution_text', 'attribution_text_color', 'attribution_bg_color',
+            'attribution_font_size',
+        );
+        foreach ( $appearance_keys as $key ) {
+            if ( isset( $input[ $key ] ) ) {
+                $new_input[ $key ] = sanitize_text_field( $input[ $key ] );
+            }
+        }
 
         return $new_input;
     }

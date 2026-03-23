@@ -62,7 +62,18 @@ class AGA_Autocomplete {
         if ( $is_paying ) {
             $country_restriction = get_post_meta( $form_id, 'Nish_aga_country_restriction', true );
             if ( ! empty( $country_restriction ) ) {
-                $config['component_restrictions']['country'] = $country_restriction;
+                $countries = array_filter( array_map( 'trim', explode( ',', $country_restriction ) ) );
+                // Google supports single string or array of up to 5
+                $config['component_restrictions']['country'] = count( $countries ) === 1 ? $countries[0] : array_values( $countries );
+            }
+        }
+
+        // Place types filter (Pro feature)
+        $config['place_types'] = '';
+        if ( $is_paying ) {
+            $place_types = get_post_meta( $form_id, 'Nish_aga_place_types', true );
+            if ( ! empty( $place_types ) ) {
+                $config['place_types'] = $place_types;
             }
         }
 
@@ -72,6 +83,27 @@ class AGA_Autocomplete {
             $show_map = get_post_meta( $form_id, 'Nish_aga_show_map_preview', true );
             $config['show_map_preview'] = ( '1' === $show_map );
             $config['map_container_selector'] = get_post_meta( $form_id, 'Nish_aga_map_container_selector', true );
+        }
+
+        // Geolocation auto-detect (Pro feature)
+        $config['geolocation'] = false;
+        if ( $is_paying ) {
+            $geolocation = get_post_meta( $form_id, 'Nish_aga_geolocation', true );
+            $config['geolocation'] = ( '1' === $geolocation );
+        }
+
+        // Address Validation (Pro feature)
+        $config['address_validation'] = false;
+        if ( $is_paying ) {
+            $address_validation = get_post_meta( $form_id, 'Nish_aga_address_validation', true );
+            $config['address_validation'] = ( '1' === $address_validation );
+        }
+
+        // Saved Addresses / Address Book (Pro feature)
+        $config['saved_addresses'] = false;
+        if ( $is_paying ) {
+            $saved_addresses = get_post_meta( $form_id, 'Nish_aga_saved_addresses', true );
+            $config['saved_addresses'] = ( '1' === $saved_addresses );
         }
 
         // Clean up empty selectors

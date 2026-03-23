@@ -65,7 +65,7 @@ class AGA_Admin {
         }
 
         $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
-                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard' ), true ) );
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard', 'aga-analytics' ), true ) );
 
         if ( ! $is_plugin_page ) {
             return;
@@ -88,7 +88,7 @@ class AGA_Admin {
         }
 
         $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
-                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard' ), true ) );
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard', 'aga-analytics' ), true ) );
 
         if ( ! $is_plugin_page ) {
             return;
@@ -97,10 +97,12 @@ class AGA_Admin {
 		wp_enqueue_script( 'select2', 'https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js', array( 'jquery' ), null, true );
 		wp_enqueue_script( $this->plugin_name, AGA_PLUGIN_URL . 'admin/js/admin.js', array( 'jquery', 'select2' ), filemtime( AGA_PLUGIN_DIR . 'admin/js/admin.js' ), true );
 
+        $settings = get_option( 'Nish_aga_settings' );
         wp_localize_script( $this->plugin_name, 'aga_admin_data', array(
-            'ajax_url' => admin_url( 'admin-ajax.php' ),
-            'nonce'    => wp_create_nonce( 'aga_admin_nonce' ),
+            'ajax_url'  => admin_url( 'admin-ajax.php' ),
+            'nonce'     => wp_create_nonce( 'aga_admin_nonce' ),
             'is_paying' => function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying(),
+            'api_key'   => isset( $settings['api_key'] ) ? $settings['api_key'] : '',
         ) );
 	}
     
@@ -124,6 +126,16 @@ class AGA_Admin {
                 array( $this, 'render_settings_page' )
             );
     
+            // Add 'Analytics' submenu (Pro).
+            add_submenu_page(
+                'edit.php?post_type=aga_form',
+                __( 'Analytics', 'autocomplete-google-address' ),
+                __( 'Analytics', 'autocomplete-google-address' ),
+                'manage_options',
+                'aga-analytics',
+                array( $this, 'render_analytics_page' )
+            );
+
             // Add 'Help' submenu.
             add_submenu_page(
                 'edit.php?post_type=aga_form', // Parent is the CPT's main menu slug
@@ -133,7 +145,7 @@ class AGA_Admin {
                 'aga-help',
                 array( $this, 'render_help_page' )
             );
-        }    
+        }
     /**
      * Renders the settings page view.
      *
@@ -153,6 +165,350 @@ class AGA_Admin {
     }
 
     /**
+     * Renders the analytics dashboard page view.
+     *
+     * @since 5.1.0
+     */
+    public function render_analytics_page() {
+        require_once AGA_PLUGIN_DIR . 'admin/views/html-admin-page-analytics.php';
+    }
+
+    /**
+     * Renders the review request banner on plugin admin pages after 14 days.
+     */
+    public function render_review_banner() {
+        // Permanently dismissed.
+        if ( get_option( 'aga_review_dismissed' ) === 'permanent' ) {
+            return;
+        }
+
+        // Dismissed temporarily — check expiration.
+        $dismissed_until = get_option( 'aga_review_dismissed' );
+        if ( $dismissed_until && is_numeric( $dismissed_until ) && time() < (int) $dismissed_until ) {
+            return;
+        }
+
+        // Set activation time if not set.
+        $activation_time = get_option( 'aga_activation_time' );
+        if ( ! $activation_time ) {
+            update_option( 'aga_activation_time', time() );
+            return;
+        }
+
+        // Check if 14 days have passed.
+        if ( ( time() - (int) $activation_time ) < ( 14 * DAY_IN_SECONDS ) ) {
+            return;
+        }
+
+        // Only show on plugin pages.
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return;
+        }
+
+        $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard', 'aga-analytics' ), true ) );
+
+        if ( ! $is_plugin_page ) {
+            return;
+        }
+
+        $review_url = 'https://wordpress.org/support/plugin/autocomplete-google-address/reviews/#new-post';
+        ?>
+        <div class="aga-review-banner" id="aga-review-banner" style="background:#f0f6fc;border:1px solid #c3d4e7;border-left:4px solid #2271b1;border-radius:4px;padding:16px 20px;margin:15px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+            <div style="flex:1;min-width:280px;">
+                <p style="margin:0;font-size:14px;color:#1d2327;line-height:1.5;">
+                    <?php esc_html_e( "You've been using Autocomplete Google Address for 2 weeks! If it's been helpful, would you mind leaving a quick review? It helps us a lot!", 'autocomplete-google-address' ); ?>
+                </p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="<?php echo esc_url( $review_url ); ?>" target="_blank" rel="noopener noreferrer" class="button button-primary" id="aga-review-sure" style="background:#2271b1;border-color:#2271b1;box-shadow:none;text-shadow:none;">
+                    <?php esc_html_e( "Sure, I'll leave a review", 'autocomplete-google-address' ); ?>
+                </a>
+                <button type="button" class="button" id="aga-review-later">
+                    <?php esc_html_e( 'Maybe later', 'autocomplete-google-address' ); ?>
+                </button>
+                <button type="button" class="button" id="aga-review-already">
+                    <?php esc_html_e( 'I already did', 'autocomplete-google-address' ); ?>
+                </button>
+            </div>
+        </div>
+        <script>
+        (function($) {
+            function agaDismissReview(type) {
+                $('#aga-review-banner').slideUp(200);
+                $.post(aga_admin_data.ajax_url, {
+                    action: 'aga_dismiss_review',
+                    nonce:  aga_admin_data.nonce,
+                    type:   type
+                });
+            }
+            $('#aga-review-sure').on('click', function() { agaDismissReview('permanent'); });
+            $('#aga-review-already').on('click', function() { agaDismissReview('permanent'); });
+            $('#aga-review-later').on('click', function() { agaDismissReview('later'); });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    /**
+     * AJAX handler for dismissing the review banner.
+     */
+    public function dismiss_review_banner() {
+        check_ajax_referer( 'aga_admin_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Unauthorized' );
+        }
+
+        $type = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : 'later';
+
+        if ( 'permanent' === $type ) {
+            update_option( 'aga_review_dismissed', 'permanent' );
+        } else {
+            // Dismiss for 30 days.
+            update_option( 'aga_review_dismissed', time() + ( 30 * DAY_IN_SECONDS ) );
+        }
+
+        wp_send_json_success();
+    }
+
+    /**
+     * Check for conflicting Google Maps API scripts loaded by other plugins or themes.
+     * Shows a warning notice in the admin area when a conflict is detected.
+     */
+    public function check_script_conflicts() {
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return;
+        }
+
+        $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard', 'aga-analytics' ), true ) );
+
+        if ( ! $is_plugin_page ) {
+            return;
+        }
+
+        $wp_scripts    = wp_scripts();
+        $conflicts     = array();
+
+        foreach ( $wp_scripts->registered as $handle => $script ) {
+            if ( 'aga-google-maps' === $handle ) {
+                continue;
+            }
+
+            if ( ! empty( $script->src ) &&
+                 ( strpos( $script->src, 'maps.googleapis.com/maps/api/js' ) !== false ||
+                   strpos( $script->src, 'maps.google.com/maps/api/js' ) !== false ) ) {
+                $conflicts[] = array(
+                    'handle' => $handle,
+                    'src'    => $script->src,
+                );
+            }
+        }
+
+        if ( empty( $conflicts ) ) {
+            return;
+        }
+
+        ?>
+        <div class="notice notice-warning is-dismissible aga-conflict-notice">
+            <p><strong><?php esc_html_e( 'Autocomplete Google Address — Script Conflict Detected', 'autocomplete-google-address' ); ?></strong></p>
+            <p><?php esc_html_e( 'Another plugin or theme is loading the Google Maps API which may conflict with Autocomplete Google Address.', 'autocomplete-google-address' ); ?></p>
+            <?php foreach ( $conflicts as $conflict ) : ?>
+                <p>
+                    <code><?php echo esc_html( $conflict['handle'] ); ?></code> &mdash;
+                    <code><?php echo esc_html( $conflict['src'] ); ?></code>
+                </p>
+            <?php endforeach; ?>
+            <p><?php esc_html_e( "Go to Settings > Advanced and enable 'Do not load Google Maps JS API' if you see issues.", 'autocomplete-google-address' ); ?></p>
+        </div>
+        <?php
+    }
+
+    /**
+     * Renders the Import/Export UI on the aga_form list screen.
+     */
+    public function render_import_export_ui() {
+        $screen = get_current_screen();
+        if ( ! $screen || 'edit-aga_form' !== $screen->id ) {
+            return;
+        }
+
+        $export_url   = wp_nonce_url( admin_url( 'admin-ajax.php?action=aga_export_configs' ), 'aga_import_export_nonce', 'nonce' );
+        $import_nonce = wp_create_nonce( 'aga_import_export_nonce' );
+        ?>
+        <style>
+            .aga-import-export-bar {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                margin: 12px 0 0;
+                padding: 12px 16px;
+                background: #fff;
+                border: 1px solid #c3c4c7;
+                border-radius: 4px;
+            }
+            .aga-import-export-bar .aga-ie-label {
+                font-weight: 600;
+                font-size: 13px;
+                color: #1d2327;
+                margin-right: 4px;
+            }
+            .aga-import-modal-overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 100100;
+                align-items: center;
+                justify-content: center;
+            }
+            .aga-import-modal-overlay.aga-active {
+                display: flex;
+            }
+            .aga-import-modal {
+                background: #fff;
+                border-radius: 8px;
+                padding: 24px 28px;
+                max-width: 460px;
+                width: 100%;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            }
+            .aga-import-modal h2 {
+                margin: 0 0 16px;
+                font-size: 18px;
+                color: #1d2327;
+            }
+            .aga-import-modal p.description {
+                margin: 0 0 16px;
+                color: #646970;
+                font-size: 13px;
+            }
+            .aga-import-modal .aga-import-file-row {
+                margin-bottom: 16px;
+            }
+            .aga-import-modal .aga-import-file-row input[type="file"] {
+                width: 100%;
+            }
+            .aga-import-modal .aga-import-actions {
+                display: flex;
+                gap: 8px;
+                justify-content: flex-end;
+            }
+            .aga-import-modal .aga-import-status {
+                margin-top: 12px;
+                padding: 10px 12px;
+                border-radius: 4px;
+                font-size: 13px;
+                display: none;
+            }
+            .aga-import-modal .aga-import-status.aga-success {
+                display: block;
+                background: #edfaef;
+                border: 1px solid #46b450;
+                color: #1e4620;
+            }
+            .aga-import-modal .aga-import-status.aga-error {
+                display: block;
+                background: #fcf0f1;
+                border: 1px solid #d63638;
+                color: #8a1f1f;
+            }
+        </style>
+
+        <div class="aga-import-export-bar" id="aga-import-export-bar">
+            <span class="aga-ie-label"><?php esc_html_e( 'Import / Export:', 'autocomplete-google-address' ); ?></span>
+            <a href="<?php echo esc_url( $export_url ); ?>" class="button button-secondary" id="aga-export-btn">
+                <span class="dashicons dashicons-download" style="vertical-align: middle; margin-right: 2px; line-height: 1.4;"></span>
+                <?php esc_html_e( 'Export All', 'autocomplete-google-address' ); ?>
+            </a>
+            <button type="button" class="button button-secondary" id="aga-import-btn">
+                <span class="dashicons dashicons-upload" style="vertical-align: middle; margin-right: 2px; line-height: 1.4;"></span>
+                <?php esc_html_e( 'Import', 'autocomplete-google-address' ); ?>
+            </button>
+        </div>
+
+        <div class="aga-import-modal-overlay" id="aga-import-modal-overlay">
+            <div class="aga-import-modal">
+                <h2><?php esc_html_e( 'Import Configurations', 'autocomplete-google-address' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Upload a JSON file previously exported from this plugin. New configurations will be created for each entry in the file.', 'autocomplete-google-address' ); ?></p>
+                <div class="aga-import-file-row">
+                    <input type="file" id="aga-import-file" accept=".json" />
+                </div>
+                <div class="aga-import-actions">
+                    <button type="button" class="button" id="aga-import-cancel"><?php esc_html_e( 'Cancel', 'autocomplete-google-address' ); ?></button>
+                    <button type="button" class="button button-primary" id="aga-import-submit"><?php esc_html_e( 'Import', 'autocomplete-google-address' ); ?></button>
+                </div>
+                <div class="aga-import-status" id="aga-import-status"></div>
+            </div>
+        </div>
+
+        <script>
+        (function($){
+            // Insert the bar after the page title action area.
+            var $bar = $('#aga-import-export-bar').detach();
+            $('.wp-header-end').length ? $bar.insertAfter('.wp-header-end') : $bar.insertAfter('.wrap h1');
+
+            // Open modal.
+            $('#aga-import-btn').on('click', function(){
+                $('#aga-import-modal-overlay').addClass('aga-active');
+                $('#aga-import-status').removeClass('aga-success aga-error').hide().text('');
+                $('#aga-import-file').val('');
+            });
+
+            // Close modal.
+            $('#aga-import-cancel, #aga-import-modal-overlay').on('click', function(e){
+                if ( e.target === this ) {
+                    $('#aga-import-modal-overlay').removeClass('aga-active');
+                }
+            });
+
+            // Submit import.
+            $('#aga-import-submit').on('click', function(){
+                var fileInput = document.getElementById('aga-import-file');
+                if ( ! fileInput.files.length ) {
+                    $('#aga-import-status').removeClass('aga-success').addClass('aga-error').text('<?php echo esc_js( __( 'Please select a JSON file.', 'autocomplete-google-address' ) ); ?>').show();
+                    return;
+                }
+
+                var formData = new FormData();
+                formData.append('action', 'aga_import_configs');
+                formData.append('nonce', '<?php echo esc_js( $import_nonce ); ?>');
+                formData.append('aga_import_file', fileInput.files[0]);
+
+                var $btn = $(this);
+                $btn.prop('disabled', true).text('<?php echo esc_js( __( 'Importing...', 'autocomplete-google-address' ) ); ?>');
+
+                $.ajax({
+                    url: '<?php echo esc_js( admin_url( 'admin-ajax.php' ) ); ?>',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if ( response.success ) {
+                            $('#aga-import-status').removeClass('aga-error').addClass('aga-success').text(response.data.message).show();
+                            setTimeout(function(){ location.reload(); }, 1500);
+                        } else {
+                            $('#aga-import-status').removeClass('aga-success').addClass('aga-error').text(response.data.message || '<?php echo esc_js( __( 'Import failed.', 'autocomplete-google-address' ) ); ?>').show();
+                        }
+                    },
+                    error: function() {
+                        $('#aga-import-status').removeClass('aga-success').addClass('aga-error').text('<?php echo esc_js( __( 'An unexpected error occurred.', 'autocomplete-google-address' ) ); ?>').show();
+                    },
+                    complete: function() {
+                        $btn.prop('disabled', false).text('<?php echo esc_js( __( 'Import', 'autocomplete-google-address' ) ); ?>');
+                    }
+                });
+            });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    /**
      * Renders the WhatsApp chat widget on plugin admin pages.
      */
     public function render_whatsapp_chat() {
@@ -162,7 +518,7 @@ class AGA_Admin {
         }
 
         $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
-                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard' ), true ) );
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard', 'aga-analytics' ), true ) );
 
         if ( ! $is_plugin_page ) {
             return;
@@ -216,5 +572,140 @@ class AGA_Admin {
         })();
         </script>
         <?php
+    }
+
+    /**
+     * Renders the Free-to-Pro upgrade banner on plugin admin pages after 7 days.
+     * Only shown to free users.
+     */
+    public function render_upgrade_banner() {
+        // Only show for FREE users.
+        if ( function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying() ) {
+            return;
+        }
+
+        // Permanently dismissed.
+        if ( get_option( 'aga_upgrade_dismissed' ) === 'permanent' ) {
+            return;
+        }
+
+        // Dismissed temporarily — check expiration (14 days).
+        $dismissed_until = get_option( 'aga_upgrade_dismissed' );
+        if ( $dismissed_until && is_numeric( $dismissed_until ) && time() < (int) $dismissed_until ) {
+            return;
+        }
+
+        // Check activation time — only show after 7 days.
+        $activation_time = get_option( 'aga_activation_time' );
+        if ( ! $activation_time ) {
+            update_option( 'aga_activation_time', time() );
+            return;
+        }
+
+        if ( ( time() - (int) $activation_time ) < ( 7 * DAY_IN_SECONDS ) ) {
+            return;
+        }
+
+        // Only show on plugin pages.
+        $screen = get_current_screen();
+        if ( ! $screen ) {
+            return;
+        }
+
+        $is_plugin_page = ( 'aga_form' === $screen->post_type ) ||
+                          ( isset( $_GET['page'] ) && in_array( $_GET['page'], array( 'aga-settings', 'aga-help', 'aga-wizard', 'aga-analytics' ), true ) );
+
+        if ( ! $is_plugin_page ) {
+            return;
+        }
+
+        $checkout_url = function_exists( 'google_autocomplete' ) ? google_autocomplete()->checkout_url() : '#';
+
+        $features = array(
+            'Smart Mapping',
+            'WooCommerce Integration',
+            'Map Preview',
+            'Address Validation',
+            'Geolocation',
+            'Form Presets',
+            'Country Restriction',
+            'Priority Support',
+        );
+        ?>
+        <div class="aga-upgrade-banner" id="aga-upgrade-banner" style="position:relative;background:linear-gradient(135deg,#4361ee,#7c3aed);border-radius:8px;padding:28px 32px;margin:15px 0;color:#fff;box-shadow:0 4px 16px rgba(67,97,238,0.3);">
+            <button type="button" id="aga-upgrade-dismiss" aria-label="Dismiss" style="position:absolute;top:12px;right:14px;background:rgba(255,255,255,0.2);border:none;color:#fff;font-size:18px;cursor:pointer;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1;transition:background 0.2s;">&times;</button>
+
+            <h3 class="aga-upgrade-banner-title" style="margin:0 0 6px 0;font-size:20px;font-weight:700;color:#fff;">
+                <?php esc_html_e( 'Unlock the Full Power of Autocomplete Google Address', 'autocomplete-google-address' ); ?>
+            </h3>
+            <p class="aga-upgrade-banner-subtitle" style="margin:0 0 20px 0;font-size:14px;color:rgba(255,255,255,0.85);">
+                <?php esc_html_e( 'Upgrade to Pro and supercharge your address forms with these premium features:', 'autocomplete-google-address' ); ?>
+            </p>
+
+            <div class="aga-upgrade-banner-features" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:22px;max-width:520px;">
+                <?php foreach ( $features as $feature ) : ?>
+                    <div class="aga-upgrade-banner-feature" style="display:flex;align-items:center;gap:8px;font-size:14px;color:#fff;">
+                        <span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;background:rgba(255,255,255,0.2);border-radius:50;flex-shrink:0;">
+                            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </span>
+                        <?php echo esc_html( $feature ); ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <a href="<?php echo esc_url( $checkout_url ); ?>" class="aga-upgrade-banner-cta" style="display:inline-block;background:#fff;color:#4361ee;font-weight:600;font-size:14px;padding:10px 28px;border-radius:6px;text-decoration:none;transition:opacity 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.15);">
+                <?php esc_html_e( 'Upgrade to Pro', 'autocomplete-google-address' ); ?>
+            </a>
+        </div>
+
+        <script>
+        (function($) {
+            var $banner = $('#aga-upgrade-banner');
+
+            $('#aga-upgrade-dismiss').on('click', function(e) {
+                e.preventDefault();
+                $banner.slideUp(200);
+                $.post(aga_admin_data.ajax_url, {
+                    action: 'aga_dismiss_upgrade',
+                    nonce:  aga_admin_data.nonce,
+                    type:   'temporary'
+                });
+            });
+
+            // Right-click or shift-click dismiss = permanent.
+            $('#aga-upgrade-dismiss').on('contextmenu', function(e) {
+                e.preventDefault();
+                $banner.slideUp(200);
+                $.post(aga_admin_data.ajax_url, {
+                    action: 'aga_dismiss_upgrade',
+                    nonce:  aga_admin_data.nonce,
+                    type:   'permanent'
+                });
+            });
+        })(jQuery);
+        </script>
+        <?php
+    }
+
+    /**
+     * AJAX handler for dismissing the upgrade banner.
+     */
+    public function dismiss_upgrade_banner() {
+        check_ajax_referer( 'aga_admin_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Unauthorized' );
+        }
+
+        $type = isset( $_POST['type'] ) ? sanitize_text_field( $_POST['type'] ) : 'temporary';
+
+        if ( 'permanent' === $type ) {
+            update_option( 'aga_upgrade_dismissed', 'permanent' );
+        } else {
+            // Dismiss for 14 days.
+            update_option( 'aga_upgrade_dismissed', time() + ( 14 * DAY_IN_SECONDS ) );
+        }
+
+        wp_send_json_success();
     }
 }

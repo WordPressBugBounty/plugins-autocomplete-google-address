@@ -66,6 +66,19 @@ class AGA_Installer {
         // Set transients for activation notice and setup wizard.
         set_transient( 'aga_activation_notice', true, 5 );
         set_transient( 'aga_show_wizard', true, 30 );
+
+        // Record activation time for review banner (only set once).
+        if ( ! get_option( 'aga_activation_time' ) ) {
+            update_option( 'aga_activation_time', time() );
+        }
+
+        // Create analytics table (Pro feature).
+        if ( class_exists( 'AGA_Analytics' ) ) {
+            AGA_Analytics::create_table();
+        } else {
+            require_once AGA_PLUGIN_DIR . 'includes/class-aga-analytics.php';
+            AGA_Analytics::create_table();
+        }
     }
 
     /**

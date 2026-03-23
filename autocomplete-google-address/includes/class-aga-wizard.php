@@ -72,56 +72,10 @@ class AGA_Wizard {
         $redirect_url = admin_url( 'edit.php?post_type=aga_form' );
 
         if ( 'woocommerce' === $form_type ) {
-            // Enable WooCommerce integration setting.
+            // Zero-config: just enable the WooCommerce setting.
+            // AGA_WooCommerce handles everything automatically (classic + block checkout).
             $settings['woocommerce_enabled'] = 1;
             update_option( 'Nish_aga_settings', $settings );
-
-            // Create form configs for both classic and block WooCommerce checkout.
-            // Classic uses underscores (#billing_address_1), Block uses hyphens (#billing-address_1).
-            // Only the matching selectors will find elements on the page; the other silently skips.
-            $woo_configs = array(
-                'WooCommerce Billing (Classic)'  => array(
-                    'main' => '#billing_address_1', 'street' => '#billing_address_1',
-                    'city' => '#billing_city', 'state' => '#billing_state',
-                    'zip'  => '#billing_postcode', 'country' => '#billing_country',
-                ),
-                'WooCommerce Shipping (Classic)' => array(
-                    'main' => '#shipping_address_1', 'street' => '#shipping_address_1',
-                    'city' => '#shipping_city', 'state' => '#shipping_state',
-                    'zip'  => '#shipping_postcode', 'country' => '#shipping_country',
-                ),
-                'WooCommerce Billing (Block)'    => array(
-                    'main' => '#billing-address_1', 'street' => '#billing-address_1',
-                    'city' => '#billing-city', 'state' => '#billing-state',
-                    'zip'  => '#billing-postcode', 'country' => '#billing-country',
-                ),
-                'WooCommerce Shipping (Block)'   => array(
-                    'main' => '#shipping-address_1', 'street' => '#shipping-address_1',
-                    'city' => '#shipping-city', 'state' => '#shipping-state',
-                    'zip'  => '#shipping-postcode', 'country' => '#shipping-country',
-                ),
-            );
-
-            foreach ( $woo_configs as $title => $sel ) {
-                $pid = wp_insert_post( array(
-                    'post_title'  => $title,
-                    'post_type'   => 'aga_form',
-                    'post_status' => 'publish',
-                ) );
-
-                if ( $pid && ! is_wp_error( $pid ) ) {
-                    update_post_meta( $pid, 'Nish_aga_mode', 'smart_mapping' );
-                    update_post_meta( $pid, 'Nish_aga_activate_globally', '1' );
-                    update_post_meta( $pid, 'Nish_aga_main_selector', $sel['main'] );
-                    update_post_meta( $pid, 'Nish_aga_street_selector', $sel['street'] );
-                    update_post_meta( $pid, 'Nish_aga_city_selector', $sel['city'] );
-                    update_post_meta( $pid, 'Nish_aga_state_selector', $sel['state'] );
-                    update_post_meta( $pid, 'Nish_aga_zip_selector', $sel['zip'] );
-                    update_post_meta( $pid, 'Nish_aga_country_selector', $sel['country'] );
-                    update_post_meta( $pid, 'Nish_aga_state_format', 'short' );
-                    update_post_meta( $pid, 'Nish_aga_country_format', 'short' );
-                }
-            }
 
         } elseif ( 'manual' === $form_type ) {
             update_option( 'Nish_aga_settings', $settings );

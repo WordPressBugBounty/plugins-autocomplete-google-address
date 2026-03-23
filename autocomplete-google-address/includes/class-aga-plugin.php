@@ -124,10 +124,19 @@ class AGA_Plugin {
         require_once AGA_PLUGIN_DIR . 'includes/class-aga-presets.php';
         require_once AGA_PLUGIN_DIR . 'includes/class-aga-wizard.php';
         require_once AGA_PLUGIN_DIR . 'includes/class-aga-woocommerce.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-validation.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-health-check.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-import-export.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-saved-addresses.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-analytics.php';
 
 		require_once AGA_PLUGIN_DIR . 'includes/class-aga-frontend.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-shortcode.php';
+        require_once AGA_PLUGIN_DIR . 'includes/class-aga-elementor.php';
 
         require_once AGA_PLUGIN_DIR . 'helpers/aga-helpers.php';
+        require_once AGA_PLUGIN_DIR . 'helpers/aga-languages.php';
+        require_once AGA_PLUGIN_DIR . 'helpers/aga-countries.php';
 
 
 		$this->loader = new AGA_Loader();
@@ -169,6 +178,21 @@ class AGA_Plugin {
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
         $this->loader->add_action( 'admin_menu', $plugin_admin, 'add_admin_menu' );
         $this->loader->add_action( 'admin_footer', $plugin_admin, 'render_whatsapp_chat' );
+        $this->loader->add_action( 'admin_notices', $plugin_admin, 'render_review_banner' );
+        $this->loader->add_action( 'admin_notices', $plugin_admin, 'check_script_conflicts' );
+        $this->loader->add_action( 'wp_ajax_aga_dismiss_review', $plugin_admin, 'dismiss_review_banner' );
+        $this->loader->add_action( 'admin_notices', $plugin_admin, 'render_upgrade_banner' );
+        $this->loader->add_action( 'wp_ajax_aga_dismiss_upgrade', $plugin_admin, 'dismiss_upgrade_banner' );
+        $this->loader->add_action( 'admin_footer', $plugin_admin, 'render_import_export_ui' );
+
+        // Import/Export functionality
+        new AGA_Import_Export();
+
+        // Health check diagnostics
+        new AGA_Health_Check();
+
+        // Usage Analytics (Pro)
+        new AGA_Analytics();
 
         // Settings page hooks
         $this->loader->add_action( 'admin_init', $plugin_settings, 'register_settings' );
@@ -177,6 +201,8 @@ class AGA_Plugin {
         $this->loader->add_action( 'init', $plugin_forms, 'register_post_type' );
         $this->loader->add_action( 'add_meta_boxes', $plugin_forms, 'add_meta_boxes' );
         $this->loader->add_action( 'save_post_aga_form', $plugin_forms, 'save_meta_box_data' );
+        $this->loader->add_filter( 'post_row_actions', $plugin_forms, 'add_duplicate_row_action', 10, 2 );
+        $this->loader->add_action( 'admin_action_aga_duplicate_form', $plugin_forms, 'handle_duplicate_form' );
         $this->loader->add_filter( 'manage_aga_form_posts_columns', $plugin_forms, 'set_custom_edit_columns' );
         $this->loader->add_action( 'manage_aga_form_posts_custom_column', $plugin_forms, 'custom_column_content', 10, 2 );
 
@@ -193,6 +219,10 @@ class AGA_Plugin {
 
 		$plugin_public = new AGA_Frontend( $this->get_plugin_name(), $this->get_version() );
         new AGA_WooCommerce();
+        new AGA_Validation();
+        new AGA_Shortcode();
+        new AGA_Elementor();
+        new AGA_Saved_Addresses();
 
         // Find globally active forms early.
         $this->loader->add_action( 'wp_enqueue_scripts', $plugin_public, 'load_automatic_forms' );
@@ -203,6 +233,9 @@ class AGA_Plugin {
         
         $this->loader->add_filter( 'script_loader_tag', $plugin_public, 'add_async_attribute', 10, 2 );
         
+        // Custom dropdown styles (Pro).
+        $this->loader->add_action( 'wp_head', $plugin_public, 'output_custom_styles' );
+
         // Shortcode
         $this->loader->add_shortcode( 'aga_form', $plugin_public, 'render_shortcode' );
 

@@ -78,7 +78,8 @@ class AGA_Frontend {
 	 * @since    1.0.0
 	 */
 	public function enqueue_styles() {
-		if ( empty( $this->forms_to_load ) ) {
+		$should_load = apply_filters( 'aga_should_load_frontend', ! empty( $this->forms_to_load ) );
+		if ( ! $should_load ) {
             return;
         }
 
@@ -91,14 +92,15 @@ class AGA_Frontend {
 	 * @since    1.0.0
 	 */
 	public function enqueue_scripts() {
-		if ( empty( $this->forms_to_load ) ) {
+		$should_load = apply_filters( 'aga_should_load_frontend', ! empty( $this->forms_to_load ) );
+		if ( ! $should_load ) {
             return;
         }
 
         $this->enqueue_google_maps_api();
 
 		wp_enqueue_script( $this->plugin_name, AGA_PLUGIN_URL . 'public/js/frontend.js', array( 'jquery' ), filemtime( AGA_PLUGIN_DIR . 'public/js/frontend.js' ), true );
-        
+
         $this->localize_script_data();
 	}
     
@@ -201,6 +203,22 @@ class AGA_Frontend {
         $configs = apply_filters( 'aga_form_configs', $configs );
 
         wp_localize_script( $this->plugin_name, 'aga_form_configs', $configs );
+
+        $settings = get_option( 'Nish_aga_settings' );
+        $is_paying = function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying();
+
+        $frontend_data = array(
+            'ajax_url'     => admin_url( 'admin-ajax.php' ),
+            'nonce'        => wp_create_nonce( 'aga_frontend_nonce' ),
+            'is_logged_in' => is_user_logged_in(),
+        );
+
+        // Pass custom attribution text if set (Pro)
+        if ( $is_paying && ! empty( $settings['attribution_text'] ) ) {
+            $frontend_data['attribution_text'] = sanitize_text_field( $settings['attribution_text'] );
+        }
+
+        wp_localize_script( $this->plugin_name, 'aga_frontend_data', $frontend_data );
     }
 
     /**
@@ -256,6 +274,60 @@ class AGA_Frontend {
             }
         }
     }
+    /**
+     * Outputs custom CSS styles for the autocomplete dropdown.
+     * Only outputs when the user is on a Pro plan.
+     *
+     * @since 1.2.0
+     */
+    public function output_custom_styles() {
+        if ( ! function_exists( 'google_autocomplete' ) || ! google_autocomplete()->is_paying() ) {
+            return;
+        }
+
+        $options = get_option( 'Nish_aga_settings' );
+
+        $bg_color      = ! empty( $options['dropdown_bg_color'] ) ? $options['dropdown_bg_color'] : '#ffffff';
+        $text_color    = ! empty( $options['dropdown_text_color'] ) ? $options['dropdown_text_color'] : '#333333';
+        $hover_color   = ! empty( $options['dropdown_hover_color'] ) ? $options['dropdown_hover_color'] : '#f0f0f0';
+        $border_color  = ! empty( $options['dropdown_border_color'] ) ? $options['dropdown_border_color'] : '#dddddd';
+        $border_radius = isset( $options['dropdown_border_radius'] ) && '' !== $options['dropdown_border_radius'] ? absint( $options['dropdown_border_radius'] ) : 4;
+        $font_size     = isset( $options['dropdown_font_size'] ) && '' !== $options['dropdown_font_size'] ? absint( $options['dropdown_font_size'] ) : 14;
+        $max_height    = isset( $options['dropdown_max_height'] ) && '' !== $options['dropdown_max_height'] ? absint( $options['dropdown_max_height'] ) : 250;
+
+        ?>
+        <style id="aga-custom-dropdown-styles">
+            .aga-autocomplete-dropdown {
+                background-color: <?php echo esc_attr( $bg_color ); ?> !important;
+                border-color: <?php echo esc_attr( $border_color ); ?> !important;
+                border-radius: <?php echo esc_attr( $border_radius ); ?>px !important;
+                max-height: <?php echo esc_attr( $max_height ); ?>px !important;
+                font-size: <?php echo esc_attr( $font_size ); ?>px !important;
+            }
+            .aga-autocomplete-dropdown .aga-autocomplete-item {
+                color: <?php echo esc_attr( $text_color ); ?> !important;
+                font-size: <?php echo esc_attr( $font_size ); ?>px !important;
+                border-bottom-color: <?php echo esc_attr( $border_color ); ?> !important;
+            }
+            .aga-autocomplete-dropdown .aga-autocomplete-item:hover,
+            .aga-autocomplete-dropdown .aga-autocomplete-item--active {
+                background-color: <?php echo esc_attr( $hover_color ); ?> !important;
+            }
+            <?php
+            $attr_text_color = ! empty( $options['attribution_text_color'] ) ? $options['attribution_text_color'] : '';
+            $attr_bg_color   = ! empty( $options['attribution_bg_color'] ) ? $options['attribution_bg_color'] : '';
+            $attr_font_size  = isset( $options['attribution_font_size'] ) && '' !== $options['attribution_font_size'] ? absint( $options['attribution_font_size'] ) : 0;
+            if ( $attr_text_color || $attr_bg_color || $attr_font_size ) : ?>
+            .aga-autocomplete-attribution {
+                <?php if ( $attr_text_color ) : ?>color: <?php echo esc_attr( $attr_text_color ); ?> !important;<?php endif; ?>
+                <?php if ( $attr_bg_color ) : ?>background-color: <?php echo esc_attr( $attr_bg_color ); ?> !important;<?php endif; ?>
+                <?php if ( $attr_font_size ) : ?>font-size: <?php echo esc_attr( $attr_font_size ); ?>px !important;<?php endif; ?>
+            }
+            <?php endif; ?>
+        </style>
+        <?php
+    }
+
     public function add_async_attribute( $tag, $handle ) {
         if ( 'aga-google-maps' !== $handle ) {
             return $tag;

@@ -554,6 +554,22 @@ input:focus + .aga-slider {
     line-height: 1.5;
 }
 
+/* Detected badge (e.g., WooCommerce auto-detected in wizard) */
+.aga-wizard-detected-badge {
+    display: inline-block;
+    background: #00a32a;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: var(--aga-radius-full);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    vertical-align: middle;
+    margin-left: var(--aga-space-sm);
+    line-height: 1.5;
+}
+
 /* Status badges */
 .aga-badge-success {
     display: inline-block;
@@ -810,6 +826,40 @@ input:focus + .aga-slider {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--aga-space-lg);
+}
+
+/* Disabled Select2 and select fields (non-Pro) */
+.aga-field-group select:disabled,
+.aga-field-group input:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f7f7f7 !important;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23999' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
+    padding-right: 30px;
+    color: #999;
+}
+
+.aga-field-group .select2-container--disabled .select2-selection {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #f7f7f7 !important;
+    border-color: #ddd !important;
+}
+
+.aga-field-group .select2-container--disabled .select2-selection__choice {
+    opacity: 0.6;
+    background-color: #999 !important;
+    border-color: #888 !important;
+}
+
+.aga-field-group .select2-container--disabled .select2-selection__choice__remove {
+    display: none;
 }
 
 
@@ -1327,6 +1377,129 @@ input:focus + .aga-slider {
 
 .aga-wizard-step.active {
     display: block;
+}
+
+/* Wizard: Feature toggles (Step 3) */
+.aga-wizard-features {
+    margin-bottom: var(--aga-space-lg);
+}
+
+.aga-wizard-feature-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--aga-space-md);
+    padding: var(--aga-space-md);
+    border: 1px solid var(--aga-border);
+    border-radius: var(--aga-radius-sm);
+    margin-bottom: var(--aga-space-sm);
+    transition: border-color var(--aga-transition);
+}
+
+.aga-wizard-feature-row:hover {
+    border-color: var(--aga-primary);
+}
+
+.aga-wizard-feature-info {
+    display: flex;
+    gap: var(--aga-space-sm);
+    flex: 1;
+    min-width: 0;
+}
+
+.aga-wizard-feature-icon {
+    color: var(--aga-primary);
+    font-size: 20px;
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.aga-wizard-feature-info strong {
+    display: block;
+    font-size: var(--aga-font-size-md);
+    color: var(--aga-text);
+    margin-bottom: 2px;
+}
+
+.aga-wizard-feature-desc {
+    display: block;
+    font-size: var(--aga-font-size-sm);
+    color: var(--aga-text-secondary);
+    line-height: 1.4;
+}
+
+.aga-wizard-api-hint {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--aga-text-muted);
+    margin-top: 4px;
+}
+
+.aga-wizard-api-hint .dashicons {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+}
+
+.aga-wizard-api-hint a {
+    color: var(--aga-primary);
+    text-decoration: none;
+}
+
+.aga-wizard-api-hint a:hover {
+    text-decoration: underline;
+}
+
+/* Wizard: Advanced settings */
+.aga-wizard-advanced {
+    margin-bottom: var(--aga-space-lg);
+    padding-top: var(--aga-space-md);
+    border-top: 1px solid var(--aga-border);
+}
+
+.aga-wizard-section-title {
+    font-size: var(--aga-font-size-md);
+    font-weight: 600;
+    color: var(--aga-text);
+    margin: 0 0 var(--aga-space-md);
+}
+
+.aga-wizard-advanced-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--aga-space-md);
+}
+
+.aga-wizard-field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.aga-wizard-field-group label {
+    font-size: var(--aga-font-size-sm);
+    font-weight: 500;
+    color: var(--aga-text);
+}
+
+.aga-wizard-field-hint {
+    font-size: 11px;
+    color: var(--aga-text-muted);
+}
+
+/* Wizard: Live preview */
+.aga-wizard-preview {
+    padding-top: var(--aga-space-md);
+    border-top: 1px solid var(--aga-border);
+}
+
+/* Responsive: stack on small screens */
+@media (max-width: 600px) {
+    .aga-wizard-advanced-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 

@@ -203,8 +203,9 @@
                 aga.setupGeolocationButton(mainInput, wrapper, config);
             }
 
-            // Map Picker button (Pro feature)
-            if (config.map_picker) {
+            // Map Picker (Pro feature) — only on frontend, not in WP admin
+            var isAdmin = document.body.classList.contains('wp-admin');
+            if (config.map_picker && !isAdmin) {
                 aga.setupMapPickerButton(mainInput, wrapper, config, state);
             }
 
@@ -357,6 +358,9 @@
             var pickerMap = null;
             var pickerMarker = null;
 
+            // Read map zoom from global settings (default 17)
+            var mapZoom = (typeof aga_frontend_data !== 'undefined' && aga_frontend_data.map_zoom) ? parseInt(aga_frontend_data.map_zoom, 10) : 17;
+
             // Store references on config so selectPlace can update the map
             config._mapPicker = {
                 getMap: function () { return pickerMap; },
@@ -364,7 +368,7 @@
                 centerOn: function (latLng) {
                     if (pickerMap) {
                         pickerMap.setCenter(latLng);
-                        pickerMap.setZoom(16);
+                        pickerMap.setZoom(mapZoom);
                     }
                     if (pickerMarker) {
                         pickerMarker.position = latLng;
@@ -372,7 +376,7 @@
                 }
             };
 
-            // Country center coordinates for restricted countries
+            // Country center coordinates (last fallback)
             var countryCenters = {
                 US: { lat: 39.8283, lng: -98.5795, zoom: 4 },
                 GB: { lat: 51.5074, lng: -0.1278, zoom: 6 },
@@ -382,7 +386,7 @@
                 DE: { lat: 51.1657, lng: 10.4515, zoom: 6 },
                 FR: { lat: 46.2276, lng: 2.2137, zoom: 6 },
                 IN: { lat: 20.5937, lng: 78.9629, zoom: 5 },
-                BR: { lat: -14.2350, lng: -51.9253, zoom: 4 },
+                BR: { lat: -14.235, lng: -51.9253, zoom: 4 },
                 JP: { lat: 36.2048, lng: 138.2529, zoom: 5 },
                 CN: { lat: 35.8617, lng: 104.1954, zoom: 4 },
                 MX: { lat: 23.6345, lng: -102.5528, zoom: 5 },
@@ -420,21 +424,79 @@
                 CO: { lat: 4.5709, lng: -74.2973, zoom: 5 },
             };
 
-            // Determine initial center from country restriction
-            var center = { lat: 20, lng: 0 }; // World center fallback
-            var initZoom = 2;
-
+            // Get country fallback center (used only if geolocation fails)
+            var countryfallback = { lat: 20, lng: 0, zoom: 2 };
             if (config.component_restrictions && config.component_restrictions.country) {
                 var restricted = config.component_restrictions.country;
                 var code = Array.isArray(restricted) ? restricted[0] : restricted;
                 code = (code || '').toUpperCase();
                 if (countryCenters[code]) {
-                    center = { lat: countryCenters[code].lat, lng: countryCenters[code].lng };
-                    initZoom = countryCenters[code].zoom;
+                    countryfallback = countryCenters[code];
                 }
             }
 
-            // Initialize map immediately
+            // Start with country fallback — geolocation will override once ready
+            var center = { lat: countryfallback.lat, lng: countryfallback.lng };
+            var initZoom = countryfallback.zoom;
+
+            // Place the marker and center map on a location
+            function showLocation(latLng, zoom) {
+                if (pickerMap) {
+                    pickerMap.setCenter(latLng);
+                    pickerMap.setZoom(zoom);
+                }
+                if (pickerMarker) {
+                    pickerMarker.position = latLng;
+                    pickerMarker.map = pickerMap; // Make visible
+                }
+            }
+
+            // Try to get user's actual location
+            function locateUser() {
+                // Priority 1: Browser geolocation (GPS/WiFi — exact location)
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        function (pos) {
+                            showLocation(
+                                { lat: pos.coords.latitude, lng: pos.coords.longitude },
+                                mapZoom
+                            );
+                        },
+                        function () {
+                            // Priority 2: IP-based geolocation
+                            ipGeolocate();
+                        },
+                        { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+                    );
+                } else {
+                    ipGeolocate();
+                }
+            }
+
+            function ipGeolocate() {
+                try {
+                    fetch('https://ipapi.co/json/', { mode: 'cors' })
+                        .then(function (res) { return res.json(); })
+                        .then(function (data) {
+                            if (data && data.latitude && data.longitude) {
+                                showLocation(
+                                    { lat: parseFloat(data.latitude), lng: parseFloat(data.longitude) },
+                                    Math.min(mapZoom, 14)
+                                );
+                            } else {
+                                // IP lookup returned no coords — show country fallback
+                                showLocation(center, initZoom);
+                            }
+                        })
+                        .catch(function () {
+                            showLocation(center, initZoom);
+                        });
+                } catch (e) {
+                    showLocation(center, initZoom);
+                }
+            }
+
+            // Initialize map — marker hidden until we have a real location
             function initMap() {
                 pickerMap = new google.maps.Map(mapContainer, {
                     center: center,
@@ -447,10 +509,13 @@
 
                 google.maps.importLibrary('marker').then(function (markerLib) {
                     pickerMarker = new markerLib.AdvancedMarkerElement({
-                        map: pickerMap,
+                        map: null, // Hidden initially — no map assigned
                         position: center,
                         gmpDraggable: true,
                     });
+
+                    // Locate user — marker becomes visible once location is found
+                    locateUser();
 
                     // Drag marker to pick address
                     pickerMarker.addListener('dragend', function () {

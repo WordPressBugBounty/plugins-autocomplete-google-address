@@ -72,6 +72,22 @@ class AGA_Frontend {
 		$this->plugin_name = $plugin_name;
 		$this->version = $version;
 
+		// Visual Selector Tool iframe mode — hide admin bar and add helper styles.
+		if ( isset( $_GET['aga_vst'] ) && '1' === $_GET['aga_vst'] ) { // phpcs:ignore WordPress.Security.NonceVerification
+			add_filter( 'show_admin_bar', '__return_false' );
+			add_action( 'wp_head', array( $this, 'vst_iframe_styles' ) );
+		}
+	}
+
+	/**
+	 * Output minimal styles when page is loaded inside the Visual Selector Tool iframe.
+	 */
+	public function vst_iframe_styles() {
+		echo '<style id="aga-vst-iframe-styles">'
+			. 'html { margin-top: 0 !important; }'
+			. '#wpadminbar { display: none !important; }'
+			. 'body { cursor: crosshair !important; }'
+			. '</style>';
 	}
 
 	/**
@@ -229,6 +245,12 @@ class AGA_Frontend {
         // Map zoom level from Appearance settings (default 17).
         $frontend_data['map_zoom'] = intval( aga_get_setting( 'map_zoom' ) ?: 17 );
 
+        // Server-side IP geolocation (avoids CORS errors from client-side fetch).
+        $ip_geo = self::get_ip_geolocation();
+        if ( $ip_geo ) {
+            $frontend_data['ip_geo'] = $ip_geo;
+        }
+
         wp_localize_script( $this->plugin_name, 'aga_frontend_data', $frontend_data );
     }
 
@@ -344,6 +366,76 @@ class AGA_Frontend {
             return $tag;
         }
         return str_replace( ' src', ' async src', $tag );
+    }
+
+    /**
+     * Server-side IP geolocation to avoid CORS errors from client-side fetch.
+     * Cached for 24 hours per visitor IP.
+     *
+     * @return array|null { lat: float, lng: float } or null on failure.
+     */
+    public static function get_ip_geolocation() {
+        $ip = self::get_visitor_ip();
+        if ( ! $ip || in_array( $ip, array( '127.0.0.1', '::1' ), true ) ) {
+            return null;
+        }
+
+        $cache_key = 'aga_ip_geo_' . md5( $ip );
+        $cached    = get_transient( $cache_key );
+        if ( false !== $cached ) {
+            return $cached;
+        }
+
+        $response = wp_remote_get( 'https://ipapi.co/' . $ip . '/json/', array(
+            'timeout'    => 3,
+            'user-agent' => 'AutocompleteGoogleAddress/' . AGA_VERSION,
+        ) );
+
+        if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
+            // Cache the failure too so we don't retry on every page load.
+            set_transient( $cache_key, null, HOUR_IN_SECONDS );
+            return null;
+        }
+
+        $body = json_decode( wp_remote_retrieve_body( $response ), true );
+        if ( empty( $body['latitude'] ) || empty( $body['longitude'] ) ) {
+            set_transient( $cache_key, null, HOUR_IN_SECONDS );
+            return null;
+        }
+
+        $geo = array(
+            'lat' => (float) $body['latitude'],
+            'lng' => (float) $body['longitude'],
+        );
+
+        set_transient( $cache_key, $geo, DAY_IN_SECONDS );
+
+        return $geo;
+    }
+
+    /**
+     * Get the visitor's real IP address.
+     */
+    private static function get_visitor_ip() {
+        $headers = array(
+            'HTTP_CF_CONNECTING_IP', // Cloudflare
+            'HTTP_X_FORWARDED_FOR',
+            'HTTP_X_REAL_IP',
+            'REMOTE_ADDR',
+        );
+        foreach ( $headers as $header ) {
+            if ( ! empty( $_SERVER[ $header ] ) ) {
+                $ip = $_SERVER[ $header ];
+                // X-Forwarded-For can be comma-separated.
+                if ( strpos( $ip, ',' ) !== false ) {
+                    $ip = trim( explode( ',', $ip )[0] );
+                }
+                if ( filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+                    return $ip;
+                }
+            }
+        }
+        return isset( $_SERVER['REMOTE_ADDR'] ) ? $_SERVER['REMOTE_ADDR'] : null;
     }
 
 }

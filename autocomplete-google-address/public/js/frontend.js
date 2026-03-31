@@ -474,24 +474,14 @@
             }
 
             function ipGeolocate() {
-                try {
-                    fetch('https://ipapi.co/json/', { mode: 'cors' })
-                        .then(function (res) { return res.json(); })
-                        .then(function (data) {
-                            if (data && data.latitude && data.longitude) {
-                                showLocation(
-                                    { lat: parseFloat(data.latitude), lng: parseFloat(data.longitude) },
-                                    Math.min(mapZoom, 14)
-                                );
-                            } else {
-                                // IP lookup returned no coords — show country fallback
-                                showLocation(center, initZoom);
-                            }
-                        })
-                        .catch(function () {
-                            showLocation(center, initZoom);
-                        });
-                } catch (e) {
+                // Use server-side IP geolocation (passed via PHP to avoid CORS errors).
+                var ipGeo = (typeof aga_frontend_data !== 'undefined') && aga_frontend_data.ip_geo;
+                if (ipGeo && ipGeo.lat && ipGeo.lng) {
+                    showLocation(
+                        { lat: parseFloat(ipGeo.lat), lng: parseFloat(ipGeo.lng) },
+                        Math.min(mapZoom, 14)
+                    );
+                } else {
                     showLocation(center, initZoom);
                 }
             }

@@ -108,6 +108,39 @@ class AGA_Admin {
             'is_paying' => function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying(),
             'api_key'   => isset( $settings['api_key'] ) ? $settings['api_key'] : '',
         ) );
+
+        // Visual Selector Tool (Pro only, form edit screen only).
+        $is_paying = function_exists( 'google_autocomplete' ) && google_autocomplete()->is_paying();
+        if ( $is_paying && 'aga_form' === $screen->post_type ) {
+            wp_enqueue_script(
+                'aga-visual-selector',
+                AGA_PLUGIN_URL . 'admin/js/visual-selector.js',
+                array( 'jquery' ),
+                filemtime( AGA_PLUGIN_DIR . 'admin/js/visual-selector.js' ),
+                true
+            );
+
+            // Build page list for the VST page dropdown.
+            $vst_pages = array();
+            $all_pages = get_pages( array( 'sort_column' => 'post_title', 'number' => 50 ) );
+            foreach ( $all_pages as $page ) {
+                $vst_pages[] = array(
+                    'title' => $page->post_title,
+                    'url'   => get_permalink( $page->ID ),
+                );
+            }
+
+            $wc_checkout_url = '';
+            if ( function_exists( 'wc_get_checkout_url' ) ) {
+                $wc_checkout_url = wc_get_checkout_url();
+            }
+
+            wp_localize_script( 'aga-visual-selector', 'aga_vst_data', array(
+                'home_url'        => home_url( '/' ),
+                'pages'           => $vst_pages,
+                'wc_checkout_url' => $wc_checkout_url,
+            ) );
+        }
 	}
     
         public function add_admin_menu() {

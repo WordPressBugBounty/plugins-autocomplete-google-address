@@ -3,7 +3,7 @@ Contributors: nishatbd31, freemius
 Tags: google address autocomplete, woocommerce address, address validation, map picker, checkout autocomplete
 Requires at least: 5.4
 Tested up to: 6.9
-Stable tag: 5.3.0
+Stable tag: 5.3.1
 Requires PHP: 7.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -290,6 +290,10 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 
 == Changelog ==
 
+= 5.3.1 =
+* NEW: AJAX page search with pagination -- search across all pages and posts (supports 750+ pages). No more 50-page limit.
+* NEW: "Forms Only" filter -- one-click toggle to show only pages containing forms (detects CF7, WPForms, Gravity Forms, Elementor, Ninja Forms, Fluent Forms, WooCommerce, and HTML forms).
+
 = 5.3.0 =
 * NEW: Visual Selector Tool -- click any form field on your site to generate its CSS selector. No DevTools, no coding needed. Shows multiple selector options (ID, Name, Class, Placeholder, Path) with color-coded cards. Works for all selector fields. (Pro)
 * NEW: Server-side IP geolocation -- eliminates CORS console errors from client-side fetch. Results cached for 24 hours per visitor.
@@ -332,5 +336,8 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 
 == Upgrade Notice ==
 
+= 5.3.1 =
+AJAX page search with pagination for large sites (750+ pages). "Forms Only" filter to quickly find pages with forms. Upgrade recommended.
+
 = 5.3.0 =
-New: Visual Selector Tool -- set up address autocomplete by clicking form fields. No code required. Plus server-side IP geolocation fix. Upgrade recommended.
+New: Visual Selector Tool -- set up address autocomplete by clicking form fields. No code required. Server-side IP geolocation fix. Upgrade recommended.

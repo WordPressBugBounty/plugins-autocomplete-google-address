@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://wordpress.org/plugins/autocomplete-google-address/"><img src="https://img.shields.io/badge/version-5.3.0-blue?style=for-the-badge&logo=wordpress&logoColor=white" alt="Version 5.3.0"></a>
+  <a href="https://wordpress.org/plugins/autocomplete-google-address/"><img src="https://img.shields.io/badge/version-5.3.1-blue?style=for-the-badge&logo=wordpress&logoColor=white" alt="Version 5.3.0"></a>
   <a href="https://wordpress.org/plugins/autocomplete-google-address/"><img src="https://img.shields.io/badge/WordPress-6.0%2B-21759B?style=for-the-badge&logo=wordpress&logoColor=white" alt="WordPress 6.0+"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-7.4%2B-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 7.4+"></a>
   <a href="https://www.gnu.org/licenses/gpl-2.0.html"><img src="https://img.shields.io/badge/license-GPL--2.0--or--later-green?style=for-the-badge" alt="License GPL-2.0-or-later"></a>
@@ -192,7 +192,12 @@ Use the `[aga_autocomplete]` shortcode to embed an autocomplete field anywhere:
 
 ## 📋 Changelog
 
-### v5.3.0 — Visual Selector Tool (Latest)
+### v5.3.1 — Page Search & Forms Filter (Latest)
+
+- 🔍 **AJAX Page Search** — Search across all pages/posts with pagination (supports 750+ pages). No more page limits.
+- 📋 **"Forms Only" Filter** — One-click toggle shows only pages containing forms (CF7, WPForms, Gravity, Elementor, WooCommerce, etc.)
+
+### v5.3.0 — Visual Selector Tool
 
 - 🎯 **Visual Selector Tool** — Click any form field on your site to generate its CSS selector. No DevTools, no coding. Shows multiple options (ID, Name, Class, Placeholder, Path) with color-coded cards. (Pro)
 - 🌐 **Server-side IP geolocation** — Eliminates CORS console errors. Cached 24h per visitor.

@@ -120,16 +120,6 @@ class AGA_Admin {
                 true
             );
 
-            // Build page list for the VST page dropdown.
-            $vst_pages = array();
-            $all_pages = get_pages( array( 'sort_column' => 'post_title', 'number' => 50 ) );
-            foreach ( $all_pages as $page ) {
-                $vst_pages[] = array(
-                    'title' => $page->post_title,
-                    'url'   => get_permalink( $page->ID ),
-                );
-            }
-
             $wc_checkout_url = '';
             if ( function_exists( 'wc_get_checkout_url' ) ) {
                 $wc_checkout_url = wc_get_checkout_url();
@@ -137,7 +127,8 @@ class AGA_Admin {
 
             wp_localize_script( 'aga-visual-selector', 'aga_vst_data', array(
                 'home_url'        => home_url( '/' ),
-                'pages'           => $vst_pages,
+                'ajax_url'        => admin_url( 'admin-ajax.php' ),
+                'nonce'           => wp_create_nonce( 'aga_vst_nonce' ),
                 'wc_checkout_url' => $wc_checkout_url,
             ) );
         }
@@ -744,5 +735,129 @@ class AGA_Admin {
         }
 
         wp_send_json_success();
+    }
+
+    /**
+     * AJAX: Search pages/posts for the Visual Selector Tool.
+     * Returns paginated results with 20 items per page.
+     */
+    public function vst_search_pages() {
+        check_ajax_referer( 'aga_vst_nonce', 'nonce' );
+
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_send_json_error( 'Unauthorized', 403 );
+        }
+
+        $search    = isset( $_GET['search'] ) ? sanitize_text_field( wp_unslash( $_GET['search'] ) ) : '';
+        $page      = isset( $_GET['page'] ) ? absint( $_GET['page'] ) : 1;
+        $filter    = isset( $_GET['filter'] ) ? sanitize_text_field( $_GET['filter'] ) : 'all';
+        $per_page  = 20;
+
+        $args = array(
+            'post_type'      => array( 'page', 'post' ),
+            'post_status'    => 'publish',
+            'posts_per_page' => 'forms' === $filter ? -1 : $per_page,
+            'paged'          => 'forms' === $filter ? 1 : $page,
+            'orderby'        => 'title',
+            'order'          => 'ASC',
+        );
+
+        if ( ! empty( $search ) ) {
+            $args['s'] = $search;
+        }
+
+        $query   = new WP_Query( $args );
+        $results = array();
+
+        // Form shortcode patterns to detect pages with forms.
+        $form_patterns = array(
+            'contact-form-7',    // CF7
+            'contact-form',      // CF7 alternate
+            'wpforms',           // WPForms
+            'gravityform',       // Gravity Forms
+            'gravityforms',
+            'formidable',        // Formidable Forms
+            'ninja_form',        // Ninja Forms
+            'fluentform',        // Fluent Forms
+            'elementor-form',    // Elementor
+            'forminator_form',   // Forminator
+            'ws_form',           // WS Form
+            'happyforms',        // HappyForms
+            'caldera_form',      // Caldera
+            'woocommerce_checkout', // WooCommerce
+            'aga_autocomplete',  // Our own shortcode
+            'aga_form',          // Our own shortcode
+        );
+
+        // WooCommerce special page IDs.
+        $wc_page_ids = array();
+        if ( function_exists( 'wc_get_page_id' ) ) {
+            foreach ( array( 'checkout', 'myaccount', 'cart' ) as $wc_page ) {
+                $wc_id = wc_get_page_id( $wc_page );
+                if ( $wc_id > 0 ) {
+                    $wc_page_ids[] = $wc_id;
+                }
+            }
+        }
+
+        foreach ( $query->posts as $post ) {
+            $has_form = false;
+
+            if ( 'forms' === $filter ) {
+                $content = $post->post_content;
+
+                // Check for form shortcodes.
+                foreach ( $form_patterns as $pattern ) {
+                    if ( stripos( $content, '[' . $pattern ) !== false ) {
+                        $has_form = true;
+                        break;
+                    }
+                }
+
+                // Check for HTML form/input tags.
+                if ( ! $has_form && ( stripos( $content, '<form' ) !== false || stripos( $content, '<input' ) !== false ) ) {
+                    $has_form = true;
+                }
+
+                // Check for Elementor form widget in metadata.
+                if ( ! $has_form && stripos( $content, '"widgetType":"form"' ) !== false ) {
+                    $has_form = true;
+                }
+
+                // WooCommerce special pages always have forms.
+                if ( ! $has_form && in_array( $post->ID, $wc_page_ids, true ) ) {
+                    $has_form = true;
+                }
+
+                if ( ! $has_form ) {
+                    continue;
+                }
+            }
+
+            $results[] = array(
+                'id'    => $post->ID,
+                'title' => $post->post_title ?: '(no title)',
+                'url'   => get_permalink( $post->ID ),
+                'type'  => $post->post_type,
+            );
+        }
+
+        // Handle pagination for forms filter (we fetched all, now paginate in PHP).
+        $total = count( $results );
+        if ( 'forms' === $filter ) {
+            $results = array_slice( $results, ( $page - 1 ) * $per_page, $per_page );
+            $pages   = max( 1, ceil( $total / $per_page ) );
+        } else {
+            $total = $query->found_posts;
+            $pages = $query->max_num_pages;
+        }
+
+        wp_send_json_success( array(
+            'items'    => array_values( $results ),
+            'page'     => $page,
+            'pages'    => $pages,
+            'total'    => $total,
+            'has_more' => $page < $pages,
+        ) );
     }
 }

@@ -2227,23 +2227,211 @@ body.aga-vst-open {
     justify-content: center;
 }
 
-.aga-vst-header-center label {
-    font-size: var(--aga-font-size-sm);
-    color: var(--aga-text-secondary);
-    white-space: nowrap;
-    margin: 0;
-}
-
-.aga-vst-header-center select {
-    min-width: 200px;
-    max-width: 350px;
-}
-
 .aga-vst-header-center .dashicons {
     font-size: 16px;
     width: 16px;
     height: 16px;
     line-height: 28px;
+}
+
+/* Filter tabs */
+.aga-vst-filter-tabs {
+    display: flex;
+    border: 1px solid var(--aga-border);
+    border-radius: var(--aga-radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.aga-vst-filter {
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--aga-font);
+    border: none;
+    background: var(--aga-bg-card);
+    color: var(--aga-text-secondary);
+    cursor: pointer;
+    transition: all var(--aga-transition);
+    white-space: nowrap;
+}
+
+.aga-vst-filter:not(:last-child) {
+    border-right: 1px solid var(--aga-border);
+}
+
+.aga-vst-filter:hover {
+    background: var(--aga-bg);
+    color: var(--aga-text);
+}
+
+.aga-vst-filter.active {
+    background: var(--aga-primary);
+    color: #fff;
+}
+
+/* Page search input */
+.aga-vst-page-search-wrap {
+    position: relative;
+    flex: 1;
+    max-width: 420px;
+}
+
+.aga-vst-search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--aga-text-muted);
+    pointer-events: none;
+    z-index: 1;
+}
+
+#aga-vst-page-search {
+    width: 100%;
+    padding: 6px 12px 6px 32px;
+    border: 1px solid var(--aga-border);
+    border-radius: var(--aga-radius-sm);
+    font-size: var(--aga-font-size-sm);
+    font-family: var(--aga-font);
+    background: var(--aga-bg-card);
+    outline: none;
+    transition: border-color var(--aga-transition), box-shadow var(--aga-transition);
+}
+
+#aga-vst-page-search:focus {
+    border-color: var(--aga-primary);
+    box-shadow: 0 0 0 3px rgba(var(--aga-primary-rgb), 0.12);
+}
+
+#aga-vst-page-search::placeholder {
+    color: var(--aga-text-muted);
+}
+
+/* Page info label */
+.aga-vst-page-info {
+    font-size: var(--aga-font-size-xs);
+    color: var(--aga-text-muted);
+    white-space: nowrap;
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Page dropdown */
+.aga-vst-page-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    margin-top: 4px;
+    background: var(--aga-bg-card);
+    border: 1px solid var(--aga-border);
+    border-radius: var(--aga-radius-md);
+    box-shadow: var(--aga-shadow-lg);
+    z-index: 999999;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.aga-vst-dd-item {
+    display: flex;
+    align-items: center;
+    gap: var(--aga-space-sm);
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background var(--aga-transition);
+    font-size: var(--aga-font-size-sm);
+}
+
+.aga-vst-dd-item:hover {
+    background: var(--aga-primary-light);
+}
+
+.aga-vst-dd-item.aga-vst-dd-pinned {
+    font-weight: 600;
+}
+
+.aga-vst-dd-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+}
+
+.aga-vst-dd-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aga-vst-dd-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: var(--aga-radius-full);
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+}
+
+.aga-vst-dd-badge--home {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.aga-vst-dd-badge--woo {
+    background: #f3e8ff;
+    color: #7c3aed;
+}
+
+.aga-vst-dd-badge--page {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.aga-vst-dd-badge--post {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.aga-vst-dd-divider {
+    height: 1px;
+    background: var(--aga-border);
+    margin: 2px 0;
+}
+
+.aga-vst-dd-loading,
+.aga-vst-dd-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--aga-text-muted);
+    font-size: var(--aga-font-size-sm);
+}
+
+.aga-vst-dd-load-more {
+    padding: 8px 12px;
+    text-align: center;
+    color: var(--aga-primary);
+    font-size: var(--aga-font-size-xs);
+    font-weight: 600;
+    cursor: pointer;
+    border-top: 1px solid var(--aga-border);
+    transition: background var(--aga-transition);
+}
+
+.aga-vst-dd-load-more:hover {
+    background: var(--aga-primary-light);
+}
+
+.aga-vst-dd-info {
+    padding: 6px 12px;
+    text-align: center;
+    color: var(--aga-text-muted);
+    font-size: var(--aga-font-size-xs);
+    border-top: 1px solid var(--aga-border);
 }
 
 .aga-vst-header-right {

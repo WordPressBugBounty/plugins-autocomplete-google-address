@@ -3,7 +3,7 @@ Contributors: nishatbd31, freemius
 Tags: google address autocomplete, woocommerce address, address validation, map picker, checkout autocomplete
 Requires at least: 5.4
 Tested up to: 6.9
-Stable tag: 5.3.1
+Stable tag: 5.3.2
 Requires PHP: 7.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -289,6 +289,12 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 10. Analytics Dashboard -- Track searches, selections, and abandonment.
 
 == Changelog ==
+
+= 5.3.2 =
+* FIX: Autocomplete now works on duplicate forms -- when the same form appears twice on a page, both instances get autocomplete.
+* FIX: Field mapping (city, state, zip, etc.) now fills the correct form instance instead of always targeting the first one.
+* FIX: Autocomplete now auto-initializes inside popups, modals, and overlays via MutationObserver.
+* FIX: Dropdown no longer flips above the input inside popups/modals -- always shows below where expected.
 
 = 5.3.1 =
 * NEW: AJAX page search with pagination -- search across all pages and posts (supports 750+ pages). No more 50-page limit.

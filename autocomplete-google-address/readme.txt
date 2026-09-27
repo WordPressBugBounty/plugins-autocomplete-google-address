@@ -2,8 +2,8 @@
 Contributors: nishatbd31, freemius
 Tags: google address autocomplete, woocommerce address, address validation, map picker, checkout autocomplete
 Requires at least: 5.4
-Tested up to: 7.0.1
-Stable tag: 5.5.0
+Tested up to: 7.1
+Stable tag: 5.6.2
 Requires PHP: 7.2
 License: GPL-2.0-or-later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -271,9 +271,13 @@ Yes (Pro). You can restrict autocomplete results to up to 5 countries. The Map P
 
 Pro features unlock instantly -- no reinstall, no separate download. Just enter your license key and all Pro features become available immediately.
 
+= How do I buy Pro? =
+
+Buy a license at https://mdnishath.com/buy/autocomplete-google-address -- pay with any Visa, Mastercard or Amex card from anywhere in the world (bKash and Nagad work too). Your license key is emailed instantly; paste it under Google Address -> License.
+
 = Is there a free trial? =
 
-Yes, we offer a 3-day free trial of the Pro plan so you can test all features before purchasing.
+The free version is fully usable with no time limit, so you can try the plugin on your site before upgrading to Pro.
 
 == Screenshots ==
 
@@ -288,7 +292,37 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 9. Address Validation -- Green/yellow/red verification badges.
 10. Analytics Dashboard -- Track searches, selections, and abandonment.
 
+== External services ==
+
+This plugin connects to the following services. Nothing is sent until you use the related feature.
+
+= Google Maps Platform (Places, Maps JavaScript and Geocoding APIs) =
+Provides the address suggestions and map. When a visitor types into an address field that you enabled, the typed text, your Google API key and the visitor's browser information are sent to Google, which returns matching addresses. The admin screens also call Google to test your API key and preview the map.
+Terms: https://cloud.google.com/maps-platform/terms - Privacy: https://policies.google.com/privacy
+
+= Freemius =
+Handles Pro purchases, trials and license activation for customers who buy through Freemius. If you opt in, or buy or activate through Freemius, your site URL, WordPress / PHP / plugin versions and admin email are sent to Freemius.
+Terms: https://freemius.com/terms/ - Privacy: https://freemius.com/privacy/
+
+= mdnishath.com license server =
+Used only if you enter a license key bought on mdnishath.com (Google Address -> License). The key, the product name and your site's address are sent to https://mdnishath.com when you activate or deactivate the key and when the plugin re-checks it (every 15 minutes while the admin is in use, hourly in the background). No visitor data is sent.
+Terms: https://mdnishath.com/terms - Privacy: https://mdnishath.com/privacy
+
 == Changelog ==
+
+= 5.6.2 =
+* CHANGED: Pro is sold on mdnishath.com, where any Visa, Mastercard or Amex card from any country is accepted (plus bKash and Nagad), with the license key emailed instantly. Upgrade links go there; the Freemius checkout and trial offer are paused. Customers who bought through Freemius keep Pro exactly as before.
+
+= 5.6.1 =
+* IMPROVED: A license revoked, expired or moved on mdnishath.com now switches Pro off within 15 minutes of admin use (hourly in the background), and the License page always checks and shows the current status. A temporary network problem still never switches Pro off.
+
+= 5.6.0 =
+* NEW: Pay in your own currency. Pro licenses can now also be bought on mdnishath.com with bKash, Nagad, Rocket, local bank cards or any Visa / Mastercard / Amex card, charged in BDT. Enter the key under Google Address -> License. Existing Freemius purchases keep working exactly as before.
+* NEW: License page showing the key's status, expiry and how many sites use it, with activate / deactivate.
+* NEW: Admin notice when a license expires, can't be verified, or is about to expire, with a renew link.
+* FIX: The Freemius trial now unlocks Pro features for the length of the trial.
+* IMPROVED: Sites licensed through Freemius don't see the License page, sites licensed on mdnishath.com don't see Freemius screens, and new installs are offered both ways to buy side by side.
+* IMPROVED: License checks are cached and re-validated every few hours in the background, so a renewal, move or refund shows up quickly; a temporary network problem never switches Pro off.
 
 = 5.5.0 =
 * FIX: State and Country now fill correctly on the WooCommerce block checkout. The block checkout renders a React-controlled `<select>`, and the plugin was announcing its change with a jQuery-only event that React never sees -- the value was written to the DOM and then silently discarded on the next re-render. The plugin now dispatches real DOM events, which React, jQuery, select2 and selectWoo all receive.
@@ -377,6 +411,15 @@ Yes, we offer a 3-day free trial of the Pro plan so you can test all features be
 * Initial release.
 
 == Upgrade Notice ==
+
+= 5.6.2 =
+Pro licenses are now bought on mdnishath.com with any card worldwide. Existing Freemius customers are not affected.
+
+= 5.6.1 =
+License status from mdnishath.com is checked more often, so renewals and changes show up within minutes.
+
+= 5.6.0 =
+Adds local-currency licenses (bKash, Nagad, cards in BDT) alongside Freemius, a License page, and makes the Freemius trial unlock Pro.
 
 = 5.5.0 =
 Fixes State and Country not filling on the WooCommerce checkout, including the block checkout. Recommended for all WooCommerce stores.
